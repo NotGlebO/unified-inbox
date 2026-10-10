@@ -57,11 +57,35 @@ public class ConversationController {
                 .toList();
     }
 
+    
+    @PostMapping("/{conversationId}/messages")
+    public MessageResponse sendMessage(
+            @PathVariable Long organizationId,
+            @PathVariable Long conversationId,
+            @RequestBody SendMessageRequest request
+    ) {
+    var message = messageService.sendTelegramMessage(
+            organizationId,
+            conversationId,
+            request.text()
+    );
+
+    return new MessageResponse(
+            message.getId(),
+            message.getSender(),
+            message.getText(),
+            message.getDirection(),
+            message.getReceivedAt()
+    );
+    }
+
+
     public record ConversationResponse(
             Long id,
             String customerName,
             String integrationName
     ) {}
+    public record SendMessageRequest(String text) {}
 
     public record MessageResponse(
             Long id,
