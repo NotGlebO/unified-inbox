@@ -26,7 +26,7 @@ public class IntegrationEntity {
     @Column(name = "external_bot_id")
     private Long externalBotId;
 
-    @Column(name = "encrypted_token", nullable = false, length = 1024)
+    @Column(name = "encrypted_token", length = 1024)
     private String encryptedToken;
 
     @Column(nullable = false)

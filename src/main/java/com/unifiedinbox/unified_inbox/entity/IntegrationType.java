@@ -2,5 +2,6 @@
 package com.unifiedinbox.unified_inbox.entity;
 
 public enum IntegrationType {
-    TELEGRAM
+    TELEGRAM,
+    GMAIL
 }

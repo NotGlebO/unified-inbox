@@ -11,18 +11,50 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
+import com.unifiedinbox.unified_inbox.integration.gmail.GmailOAuthSuccessHandler;
+
 @Configuration
 public class SecurityConfig {
+
+    
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    @Bean
+    public DefaultOAuth2AuthorizationRequestResolver
+    gmailAuthorizationRequestResolver(
+            ClientRegistrationRepository registrations
+    ) {
+        var resolver = new DefaultOAuth2AuthorizationRequestResolver(
+                registrations,
+                "/oauth2/authorization"
+        );
+
+        resolver.setAuthorizationRequestCustomizer(
+                OAuth2AuthorizationRequestCustomizers
+                        .withPkce()
+                        .andThen(request -> request
+                                .additionalParameters(params -> {
+                                    params.put("access_type", "offline");
+                                    params.put("prompt", "consent");
+                                }))
+        );
+
+        return resolver;
+    }
     
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            DefaultOAuth2AuthorizationRequestResolver gmailAuthorizationRequestResolver,
+            GmailOAuthSuccessHandler gmailOAuthSuccessHandler
     ) throws Exception {
 
         http
@@ -55,7 +87,17 @@ public class SecurityConfig {
                 .failureUrl("/login?error")
                 .permitAll()
             )
-            .oauth2Client(oauth2 -> {})
+            .oauth2Login(oauth -> oauth
+            .successHandler(gmailOAuthSuccessHandler)
+            )
+
+            .oauth2Client(oauth2 -> oauth2
+            .authorizationCodeGrant(code -> code
+                    .authorizationRequestResolver(
+                            gmailAuthorizationRequestResolver
+                    )
+            )
+    )
 
             .logout(logout -> logout
                 .logoutUrl("/logout")

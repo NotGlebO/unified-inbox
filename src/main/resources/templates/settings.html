@@ -191,6 +191,27 @@
             </button>
 
         </div>
+        <div class="integration-card">
+
+            <div class="integration-card-header">
+
+                <div class="integration-info">
+                    <h4>Gmail</h4>
+                    <p>
+                        Connect your Google account to read
+                        and send emails from Unified Inbox.
+                    </p>
+                </div>
+
+            </div>
+
+            <a th:if="${isOwner}"
+            th:href="@{/organizations/{id}/gmail/connect(id=${organization.id})}"
+            class="connect-telegram-btn">
+                + Connect Gmail
+            </a>
+
+        </div>
 
     </section>
 
