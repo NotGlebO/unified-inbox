@@ -38,13 +38,11 @@ public class SecurityConfig {
         );
 
         resolver.setAuthorizationRequestCustomizer(
-                OAuth2AuthorizationRequestCustomizers
-                        .withPkce()
-                        .andThen(request -> request
-                                .additionalParameters(params -> {
-                                    params.put("access_type", "offline");
-                                    params.put("prompt", "consent");
-                                }))
+                request -> request
+                        .additionalParameters(params -> {
+                            params.put("access_type", "offline");
+                            params.put("prompt", "consent");
+                        })
         );
 
         return resolver;
@@ -88,8 +86,13 @@ public class SecurityConfig {
                 .permitAll()
             )
             .oauth2Login(oauth -> oauth
-            .successHandler(gmailOAuthSuccessHandler)
+            .authorizationEndpoint(endpoint -> endpoint
+                .authorizationRequestResolver(
+                    gmailAuthorizationRequestResolver
+                )
             )
+            .successHandler(gmailOAuthSuccessHandler)
+        )
 
             .oauth2Client(oauth2 -> oauth2
             .authorizationCodeGrant(code -> code

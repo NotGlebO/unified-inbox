@@ -16,6 +16,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 
 import java.io.IOException;
 
@@ -23,7 +25,7 @@ import java.io.IOException;
 public class GmailOAuthSuccessHandler
         implements AuthenticationSuccessHandler {
 
-    private final OAuth2AuthorizedClientService clientService;
+    private final OAuth2AuthorizedClientRepository clientRepository;
     private final OrganizationService organizationService;
     private final IntegrationRepository integrationRepository;
     private final GmailAccountRepository gmailAccountRepository;
@@ -31,14 +33,14 @@ public class GmailOAuthSuccessHandler
     private final TransactionTemplate transactionTemplate;
 
     public GmailOAuthSuccessHandler(
-            OAuth2AuthorizedClientService clientService,
+            OAuth2AuthorizedClientRepository clientRepository,
             OrganizationService organizationService,
             IntegrationRepository integrationRepository,
             GmailAccountRepository gmailAccountRepository,
             TokenEncryptionService encryptionService,
             org.springframework.transaction.PlatformTransactionManager transactionManager
     ) {
-        this.clientService = clientService;
+        this.clientRepository = clientRepository;
         this.organizationService = organizationService;
         this.integrationRepository = integrationRepository;
         this.gmailAccountRepository = gmailAccountRepository;
@@ -92,10 +94,17 @@ public class GmailOAuthSuccessHandler
         String googleId = googleUser.getAttribute("sub");
         String email = googleUser.getAttribute("email");
 
-        OAuth2AuthorizedClient client = clientService.loadAuthorizedClient(
-                "google",
-                authentication.getName()
-        );
+        if (!(authentication instanceof OAuth2AuthenticationToken oauthToken)) {
+            response.sendError(400, "Invalid Google authentication");
+            return;
+        }
+
+        OAuth2AuthorizedClient client =
+                clientRepository.loadAuthorizedClient(
+                        oauthToken.getAuthorizedClientRegistrationId(),
+                        oauthToken,
+                        request
+                );
 
         if (client == null || googleId == null || email == null) {
             response.sendError(400, "Google account information unavailable");
@@ -142,9 +151,11 @@ public class GmailOAuthSuccessHandler
 
         // Do not retain a second copy of the OAuth tokens in the
         // default Spring authorized-client storage.
-        clientService.removeAuthorizedClient(
-                "google",
-                authentication.getName()
+        clientRepository.removeAuthorizedClient(
+                oauthToken.getAuthorizedClientRegistrationId(),
+                oauthToken,
+                request,
+                response
         );
 
         response.sendRedirect(
