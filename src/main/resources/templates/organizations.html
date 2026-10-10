@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Unified Inbox — My Organizations</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<main class="dashboard">
+
+    <header class="dashboard-header">
+        <div class="dashboard-brand">
+            <div class="brand-icon">✉</div>
+            <div>
+                <h1>Unified Inbox</h1>
+                <p>All your messages in one place</p>
+            </div>
+        </div>
+
+        <form th:action="@{/logout}" method="post">
+            <button class="logout-button" type="submit">
+                Sign Out
+            </button>
+        </form>
+    </header>
+
+    <section class="dashboard-content">
+
+        <div class="dashboard-title">
+            <h2>My Organizations</h2>
+            <p>Manage your workspaces and conversations.</p>
+        </div>
+
+        <p class="message success"
+           th:if="${success}"
+           th:text="${success}">
+        </p>
+
+        <p class="message error"
+           th:if="${error}"
+           th:text="${error}">
+        </p>
+
+        <div class="create-organization">
+            <h3>Create Organization</h3>
+
+            <form th:action="@{/organizations}" method="post">
+                <input
+                    type="text"
+                    name="name"
+                    placeholder="Organization name"
+                    maxlength="100"
+                    required
+                >
+
+                <button type="submit">
+                    Create
+                </button>
+            </form>
+        </div>
+
+        <h3 class="section-title">Your Organizations</h3>
+
+        <div class="organization-grid">
+
+            <div class="organization-card"
+                 th:each="organization : ${organizations}">
+
+                <div class="organization-icon">🏢</div>
+
+                <h3 th:text="${organization.name}">
+                    Organization Name
+                </h3>
+
+                <p>Owner</p>
+
+                
+                <div class="organization-actions">
+
+                    
+                    <span class="organization-role"
+                        th:text="${organization.role}">
+                        MEMBER
+                    </span>
+
+
+                    <a th:href="@{/organizations/{id}/settings(id=${organization.id})}"
+                    class="settings-link">
+                        Settings →
+                    </a>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+        <div class="empty-state"
+             th:if="${#lists.isEmpty(organizations)}">
+
+            <h3>No organizations yet</h3>
+
+            <p>
+                Create your first organization to get started.
+            </p>
+
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>
