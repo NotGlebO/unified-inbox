@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .failureUrl("/login?error")
                 .permitAll()
             )
+            .oauth2Client(oauth2 -> {})
 
             .logout(logout -> logout
                 .logoutUrl("/logout")

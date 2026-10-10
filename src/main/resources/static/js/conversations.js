@@ -9,6 +9,10 @@ const conversationList = document.getElementById("conversationList");
 const messageList = document.getElementById("messageList");
 const header = document.getElementById("conversationHeader");
 const search = document.getElementById("search");
+const messageInput = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
+
+let sending = false;
 
 let conversations = [];
 let selectedConversationId = null;
@@ -158,6 +162,10 @@ async function selectConversation(id) {
     selectedConversationId = id;
     lastRenderedMessages = "";
 
+    messageInput.disabled = false;
+    sendButton.disabled = false;
+    messageInput.placeholder = "Type your message...";
+
     const selected = conversations.find(
         conversation => conversation.id === id
     );
@@ -194,6 +202,9 @@ async function loadConversations() {
 
     if (!selectedExists) {
         selectedConversationId = null;
+        messageInput.disabled = true;
+        sendButton.disabled = true;
+        messageInput.placeholder = "Select a conversation to reply...";
         header.hidden = true;
         lastRenderedMessages = "";
 
@@ -330,6 +341,77 @@ search.addEventListener(
     "input",
     renderConversations
 );
+
+
+async function sendMessage() {
+    const text = messageInput.value.trim();
+
+    if (!text || selectedConversationId === null || sending) {
+        return;
+    }
+
+    const conversationId = selectedConversationId;
+
+    sending = true;
+    sendButton.disabled = true;
+    messageInput.disabled = true;
+
+    try {
+        // Get CSRF token from Spring Security
+        const csrfResponse = await fetch("/api/csrf");
+
+        if (!csrfResponse.ok) {
+            throw new Error("Could not get CSRF token.");
+        }
+
+        const csrf = await csrfResponse.json();
+
+        // Send message to our backend
+        const response = await fetch(
+            `/api/organizations/${organizationId}/conversations/${conversationId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    [csrf.headerName]: csrf.token
+                },
+                body: JSON.stringify({ text })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Message could not be sent (${response.status}).`
+            );
+        }
+
+        // Clear input only after successful response
+        if (selectedConversationId === conversationId) {
+            messageInput.value = "";
+            await loadMessages();
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert(error.message);
+
+    } finally {
+        sending = false;
+        messageInput.disabled = selectedConversationId === null;
+        sendButton.disabled = selectedConversationId === null;
+    }
+}
+
+sendButton.addEventListener("click", sendMessage);
+
+messageInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        sendMessage();
+    }
+});
+
 
 refresh();
 
