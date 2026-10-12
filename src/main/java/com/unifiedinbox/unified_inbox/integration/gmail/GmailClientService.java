@@ -84,13 +84,14 @@ public class GmailClientService {
     }
 
     // Fetch one full Gmail message
-    public Map getMessage(
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getMessage(
             GmailAccountEntity account,
             String messageId
     ) {
         String accessToken = getAccessToken(account);
 
-        return restClient.get()
+        return (Map<String, Object>) restClient.get()
                 .uri(
                         "https://gmail.googleapis.com/gmail/v1/users/me/messages/{id}?format=full",
                         messageId

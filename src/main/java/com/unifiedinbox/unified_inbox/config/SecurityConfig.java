@@ -13,7 +13,6 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import com.unifiedinbox.unified_inbox.integration.gmail.GmailOAuthSuccessHandler;
 
 @Configuration

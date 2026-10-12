@@ -20,7 +20,6 @@ public class GmailSenderService {
 
     private final GmailClientService gmailClientService;
     private final GmailAccountRepository gmailAccountRepository;
-    private final MessageRepository messageRepository;
     private final RestClient restClient = RestClient.create();
 
     public GmailSenderService(
@@ -30,7 +29,6 @@ public class GmailSenderService {
     ) {
         this.gmailClientService = gmailClientService;
         this.gmailAccountRepository = gmailAccountRepository;
-        this.messageRepository = messageRepository;
     }
 
     public String sendReply(
