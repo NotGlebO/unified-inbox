@@ -89,10 +89,17 @@
                     </span>
 
 
-                    <a th:href="@{/organizations/{id}/settings(id=${organization.id})}"
-                    class="settings-link">
-                        Settings →
+                    <div class="organization-navigation">
+                    <a th:href="@{/organizations/{id}/conversations(id=${organization.id})}"
+                    class="organization-nav-btn">
+                        Conversations
                     </a>
+
+                    <a th:href="@{/organizations/{id}/settings(id=${organization.id})}"
+                    class="organization-nav-btn">
+                        Settings
+                    </a>
+                </div>
 
                 </div>
 

@@ -487,3 +487,29 @@ body {
 .telegram-connect .settings-description {
     margin-top: 14px;
 }
+
+
+.organization-navigation {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.organization-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 12px;
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.organization-nav-btn:hover {
+    background: #1d4ed8;
+}

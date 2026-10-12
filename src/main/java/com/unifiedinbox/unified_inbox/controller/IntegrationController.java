@@ -79,7 +79,7 @@ public class IntegrationController {
 
             redirectAttributes.addFlashAttribute(
                     "success",
-                    "Telegram bot disconnected successfully."
+                    "Integration disconnected successfully."
             );
 
     } catch (IllegalArgumentException e) {

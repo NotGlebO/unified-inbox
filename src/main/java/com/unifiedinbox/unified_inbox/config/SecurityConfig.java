@@ -86,6 +86,7 @@ public class SecurityConfig {
                 .permitAll()
             )
             .oauth2Login(oauth -> oauth
+            .loginPage("/login")
             .authorizationEndpoint(endpoint -> endpoint
                 .authorizationRequestResolver(
                     gmailAuthorizationRequestResolver

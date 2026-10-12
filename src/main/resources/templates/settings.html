@@ -131,7 +131,8 @@
             <div class="connected-bots">
 
                 <div class="connected-bot"
-                    th:each="integration : ${integrations}">
+                    th:each="integration : ${integrations}"
+                    th:if="${integration.type.name() == 'TELEGRAM'}">
 
                     <div class="bot-details">
                         <div class="bot-avatar">
@@ -176,7 +177,7 @@
                 </div>
 
                 <p class="empty-integrations"
-                th:if="${#lists.isEmpty(integrations)}">
+                th:if="${#lists.isEmpty(integrations.?[type.name() == 'TELEGRAM'])}">
                     No Telegram bots connected yet.
                 </p>
 
@@ -203,6 +204,54 @@
                     </p>
                 </div>
 
+            </div>
+
+            <div class="connected-bots">
+                <div class="connected-bot"
+                     th:each="integration : ${integrations}"
+                     th:if="${integration.type.name() == 'GMAIL'}">
+
+                    <div class="bot-details">
+                        <div class="bot-avatar">
+                            <img th:src="@{/icons/gmail.svg}"
+                                 alt="Gmail"
+                                 class="telegram-icon">
+                        </div>
+
+                        <div>
+                            <strong th:text="${integration.displayName}">example@gmail.com</strong>
+                            <small>Gmail Account</small>
+                        </div>
+                    </div>
+
+                    <div class="bot-actions">
+
+                        <span class="bot-status"
+                            th:text="${integration.enabled ? 'Connected' : 'Disconnected'}">
+                            Connected
+                        </span>
+
+                        <form th:if="${isOwner and integration.enabled}"
+                            th:action="@{/organizations/{orgId}/integrations/{integrationId}/disconnect(
+                                orgId=${organization.id},
+                                integrationId=${integration.id}
+                            )}"
+                            method="post"
+                            onsubmit="return confirm('Disconnect this Gmail account?');">
+
+                            <button type="submit" class="disconnect-bot-btn">
+                                Disconnect
+                            </button>
+
+                        </form>
+
+                    </div>
+                </div>
+
+                <p class="empty-integrations"
+                   th:if="${#lists.isEmpty(integrations.?[type.name() == 'GMAIL'])}">
+                    No Gmail accounts connected yet.
+                </p>
             </div>
 
             <a th:if="${isOwner}"
