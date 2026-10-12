@@ -16,7 +16,7 @@ public interface ConversationRepository
 
     Optional<ConversationEntity> findByIntegrationIdAndExternalChatId(
             Long integrationId,
-            Long externalChatId
+            String externalChatId
     );
 
     Optional<ConversationEntity> findByIdAndOrganizationId(

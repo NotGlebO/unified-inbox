@@ -121,14 +121,43 @@ public class GmailOAuthSuccessHandler
         String encryptedRefreshToken =
                 encryptionService.encrypt(refreshToken.getTokenValue());
 
-        transactionTemplate.executeWithoutResult(status -> {
+       transactionTemplate.executeWithoutResult(status -> {
 
-            if (gmailAccountRepository.findByGoogleAccountId(googleId).isPresent()) {
-                throw new IllegalStateException(
-                        "This Gmail account is already connected"
-                );
+            var existingAccount =
+                    gmailAccountRepository.findByGoogleAccountId(googleId);
+
+            if (existingAccount.isPresent()) {
+
+                    GmailAccountEntity account = existingAccount.get();
+                    IntegrationEntity integration = account.getIntegration();
+
+                    // Check organization ownership
+                    if (!integration.getOrganization().getId().equals(organizationId)) {
+                    throw new IllegalStateException(
+                            "This Gmail account belongs to another organization"
+                    );
+                    }
+
+                    // Prevent duplicate active connections
+                    if (integration.isEnabled()) {
+                    throw new IllegalStateException(
+                            "This Gmail account is already connected"
+                    );
+                    }
+
+                    // Restore disconnected integration
+                    integration.setEnabled(true);
+
+                    // Update refresh token
+                    account.setEncryptedRefreshToken(encryptedRefreshToken);
+
+                    integrationRepository.save(integration);
+                    gmailAccountRepository.save(account);
+
+                    return;
             }
 
+            // Create new Gmail integration
             IntegrationEntity integration = new IntegrationEntity(
                     organization,
                     IntegrationType.GMAIL,
@@ -147,8 +176,7 @@ public class GmailOAuthSuccessHandler
             );
 
             gmailAccountRepository.save(account);
-        });
-
+            });
         // Do not retain a second copy of the OAuth tokens in the
         // default Spring authorized-client storage.
         clientRepository.removeAuthorizedClient(

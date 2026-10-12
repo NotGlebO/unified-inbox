@@ -27,11 +27,11 @@ public class ConversationService {
     }
 
     @Transactional
-    public ConversationEntity findOrCreateConversation(
-            IntegrationEntity integration,
-            Long externalChatId,
-            String customerName
-    ) {
+        public ConversationEntity findOrCreateConversation(
+                IntegrationEntity integration,
+                String externalChatId,
+                String customerName
+        ) {
         if (!integration.isEnabled()) {
             throw new IllegalStateException(
                     "Integration is disconnected."

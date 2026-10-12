@@ -81,6 +81,20 @@ public class MessageEntity {
         this.direction = "INCOMING";
     }
 
+        public MessageEntity(
+        String gmailMessageId,
+        String sender,
+        String text,
+        Instant receivedAt
+    ) {
+        this.externalMessageId = gmailMessageId;
+        this.sender = sender;
+        this.text = text;
+        this.receivedAt = receivedAt;
+        this.source = "GMAIL";
+        this.direction = "INCOMING";
+    }
+
     public Long getId() {
         return id;
     }
@@ -133,4 +147,6 @@ public class MessageEntity {
     public void setConversation(ConversationEntity conversation) {
         this.conversation = conversation;
     }
+
+
 }

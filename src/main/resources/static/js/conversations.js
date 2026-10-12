@@ -34,14 +34,15 @@ function element(tag, className, text) {
 }
 
 function sourceInfo(conversation) {
-    const name = conversation.integrationName || "Telegram";
+    const name = conversation.integrationName || "Unknown";
 
-    return {
-        name,
-        icon: /whatsapp/i.test(name)
+    const icon = /gmail/i.test(name) || /@gmail\.com/i.test(name)
+        ? "/icons/gmail.svg"
+        : /whatsapp/i.test(name)
             ? "/icons/whatsapp.svg"
-            : "/icons/telegram.svg"
-    };
+            : "/icons/telegram.svg";
+
+    return { name, icon };
 }
 
 function appendSource(parent, conversation, className) {

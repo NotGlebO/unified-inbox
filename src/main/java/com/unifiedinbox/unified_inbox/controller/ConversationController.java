@@ -64,7 +64,7 @@ public class ConversationController {
             @PathVariable Long conversationId,
             @RequestBody SendMessageRequest request
     ) {
-    var message = messageService.sendTelegramMessage(
+    var message = messageService.sendMessage(
             organizationId,
             conversationId,
             request.text()

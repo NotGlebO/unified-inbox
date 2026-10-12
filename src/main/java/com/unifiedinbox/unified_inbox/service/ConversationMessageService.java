@@ -13,6 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.unifiedinbox.unified_inbox.integration.gmail.GmailSenderService;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,15 +26,21 @@ public class ConversationMessageService {
     private final TelegramSenderService telegramSenderService;
     private final MessageRepository messageRepository;
     private final ConversationService conversationService;
+    private final GmailSenderService gmailSenderService;
+    private final TransactionTemplate transactionTemplate;
 
     public ConversationMessageService(
             MessageRepository messageRepository,
             ConversationService conversationService,
-            TelegramSenderService telegramSenderService
+            TelegramSenderService telegramSenderService,
+            GmailSenderService gmailSenderService,
+            PlatformTransactionManager transactionManager
     ) {
         this.messageRepository = messageRepository;
         this.conversationService = conversationService;
         this.telegramSenderService = telegramSenderService;
+        this.gmailSenderService = gmailSenderService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Transactional
@@ -52,7 +61,7 @@ public class ConversationMessageService {
         ConversationEntity conversation =
                 conversationService.findOrCreateConversation(
                         integration,
-                        chatId,
+                        String.valueOf(chatId),
                         sender
                 );
 
@@ -135,7 +144,7 @@ public class ConversationMessageService {
                 );
             }
 
-            Long chatId = conversation.getExternalChatId();
+            Long chatId = Long.valueOf(conversation.getExternalChatId());
 
             // Send the message to Telegram first
             Long telegramMessageId = telegramSenderService.sendMessage(
@@ -158,5 +167,72 @@ public class ConversationMessageService {
 
             return messageRepository.save(message);
         }
+        public MessageEntity sendMessage(
+            Long organizationId,
+            Long conversationId,
+            String text
+        ) {
+        ConversationEntity conversation =
+                conversationService.getConversation(
+                        organizationId,
+                        conversationId
+                );
+
+        if (text == null || text.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Message cannot be empty"
+            );
+        }
+
+        IntegrationType type = conversation.getIntegration().getType();
+
+        if (type == IntegrationType.TELEGRAM) {
+            return sendTelegramMessage(
+                    organizationId,
+                    conversationId,
+                    text
+            );
+        }
+
+        if (type == IntegrationType.GMAIL) {
+
+            String messageText = text.trim();
+
+            if (messageText.length() > 50000) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Gmail message is too long"
+                );
+            }
+
+            String gmailMessageId = gmailSenderService.sendReply(
+                    conversation,
+                    messageText
+            );
+
+            // Gmail has accepted the message.
+            // Save it locally with its external ID.
+            return transactionTemplate.execute(status -> {
+
+                MessageEntity message = new MessageEntity(
+                        gmailMessageId,
+                        "Support",
+                        messageText,
+                        Instant.now()
+                );
+
+                message.setDirection("OUTGOING");
+                message.setConversation(conversation);
+
+                return messageRepository.save(message);
+            });
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Unsupported integration type"
+        );
+    }
 
 }

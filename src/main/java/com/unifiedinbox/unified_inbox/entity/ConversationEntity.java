@@ -30,7 +30,7 @@ public class ConversationEntity {
     private IntegrationEntity integration;
 
     @Column(name = "external_chat_id", nullable = false)
-    private Long externalChatId;
+    private String externalChatId;
 
     @Column(name = "customer_name", length = 255)
     private String customerName;
@@ -47,7 +47,7 @@ public class ConversationEntity {
     public ConversationEntity(
             OrganizationEntity organization,
             IntegrationEntity integration,
-            Long externalChatId,
+            String externalChatId,
             String customerName
     ) {
         this.organization = organization;
@@ -88,7 +88,7 @@ public class ConversationEntity {
         return integration;
     }
 
-    public Long getExternalChatId() {
+    public String getExternalChatId() {
         return externalChatId;
     }
 
