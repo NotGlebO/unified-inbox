@@ -3,7 +3,8 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Organization Settings — Unified Inbox</title>
 
@@ -11,13 +12,16 @@
     <link rel="stylesheet" th:href="@{/css/organizations.css}">
     <link rel="stylesheet" th:href="@{/css/settings.css}">
 </head>
+
 <body>
 
 <main class="dashboard">
 
     <header class="dashboard-header">
+
         <div class="dashboard-brand">
             <div class="dashboard-brand-icon">✉</div>
+
             <div>
                 <h1>Unified Inbox</h1>
                 <p>All your messages in one place</p>
@@ -29,21 +33,27 @@
                 Sign Out
             </button>
         </form>
+
     </header>
 
     <section class="settings-content">
 
-        <a class="back-link" th:href="@{/organizations}">
-            ← Back to Organizations
-        </a>
-        
-        <a class="back-link"
-        th:href="@{/organizations/{id}/conversations(id=${organization.id})}">
-            → Open Inbox
-        </a>
+        <div class="settings-navigation">
 
+            <a class="back-link"
+               th:href="@{/organizations}">
+                ← Back to Organizations
+            </a>
+
+            <a class="back-link"
+               th:href="@{/organizations/{id}/conversations(id=${organization.id})}">
+                → Open Inbox
+            </a>
+
+        </div>
 
         <div class="settings-title">
+
             <h2 th:text="${organization.name}">
                 Organization Name
             </h2>
@@ -51,35 +61,117 @@
             <p class="settings-description">
                 Manage your organization and its members.
             </p>
+
         </div>
 
+        <!-- Success and error messages -->
+
+        <p class="message success"
+           th:if="${success}"
+           th:text="${success}">
+        </p>
+
+        <p class="message error"
+           th:if="${error}"
+           th:text="${error}">
+        </p>
+
+        <!-- Members -->
+
         <div class="settings-panel">
+            
+            <!-- Add member form: visible only to the owner -->
+            <div class="add-member-section" th:if="${isOwner}">
+
+                <div class="add-member-heading">
+                    <h4>Add Member</h4>
+                    <p>
+                        Enter the username of an existing user
+                        to add them to this organization.
+                    </p>
+                </div>
+
+                <form class="add-member-form"
+                    th:action="@{/organizations/{id}/members/add(id=${organization.id})}"
+                    method="post">
+
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Enter username..."
+                        maxlength="50"
+                        autocomplete="off"
+                        required
+                    >
+
+                    <button class="add-member-button"
+                            type="submit">
+                        + Add Member
+                    </button>
+
+                </form>
+
+            </div>
+
+
             <h3>Organization Members</h3>
 
             <div class="member-item"
                  th:each="member : ${members}">
 
                 <div class="member-details">
+
                     <div class="member-avatar"
                          th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">
                         U
                     </div>
 
-                    <span class="member-name"
-                          th:text="${member.username}">
-                        Username
-                    </span>
+                    <div class="member-info">
+
+                        <span class="member-name"
+                              th:text="${member.username}">
+                            Username
+                        </span>
+
+                        <span class="member-role"
+                              th:text="${member.role}">
+                            MEMBER
+                        </span>
+
+                    </div>
+
                 </div>
 
-                <span class="member-role"
-                      th:text="${member.role}">
-                    MEMBER
-                </span>
+                <div class="member-actions">
+
+                    <!-- Owner cannot be removed -->
+                    <span class="owner-protected"
+                          th:if="${member.role.name() == 'OWNER'}">
+                        Protected
+                    </span>
+
+                    <!-- Only owners can remove regular members -->
+                    <form
+                        th:if="${isOwner and member.role.name() != 'OWNER'}"
+                        th:action="@{/organizations/{id}/members/{memberId}/remove(id=${organization.id},memberId=${member.id})}"
+                        method="post"
+                        onsubmit="return confirm('Remove this member from the organization?');">
+
+                        <button class="remove-member-button"
+                                type="submit">
+                            Remove
+                        </button>
+
+                    </form>
+
+                </div>
 
             </div>
+
         </div>
 
     </section>
+
 </main>
 
 </body>

@@ -184,4 +184,96 @@ public class OrganizationService {
                 .toList();
     }
 
+    
+    @Transactional
+    public void removeMember(Long organizationId, Long memberId) {
+
+        // Only the organization owner can remove members
+        requireOwner(organizationId);
+
+        // Find the membership record
+        OrganizationMemberEntity member = memberRepository
+                .findById(memberId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Organization member not found."
+                ));
+
+        // Make sure the member belongs to this organization
+        if (!member.getOrganization().getId().equals(organizationId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Organization member not found."
+            );
+        }
+
+        // Prevent removing the organization owner
+        if (member.getRole() == OrganizationRole.OWNER) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "The organization owner cannot be removed."
+            );
+        }
+
+        // Delete only the membership, not the user account
+        memberRepository.delete(member);
+    }
+
+    
+    @Transactional
+    public void addMember(Long organizationId, String username) {
+
+        // Only the organization owner can add members
+        requireOwner(organizationId);
+
+        // Validate the username
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Username cannot be empty."
+            );
+        }
+
+        String normalizedUsername = username.trim();
+
+        // Find an existing registered user
+        UserEntity user = userRepository
+                .findByUsername(normalizedUsername)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found."
+                ));
+
+        // Check whether the user is already a member
+        boolean alreadyMember = memberRepository
+                .findByOrganizationIdAndUserId(
+                        organizationId,
+                        user.getId()
+                )
+                .isPresent();
+
+        if (alreadyMember) {
+            throw new IllegalArgumentException(
+                    "This user is already a member of the organization."
+            );
+        }
+
+        // Load the organization
+        OrganizationEntity organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Organization not found."
+                ));
+
+        // Create a new membership with MEMBER role
+        OrganizationMemberEntity membership =
+                new OrganizationMemberEntity(
+                        organization,
+                        user,
+                        OrganizationRole.MEMBER
+                );
+
+        memberRepository.save(membership);
+    }
+
+
 }
