@@ -7,8 +7,6 @@ public record ConversationSummary(
         Long id,
         Long integrationId,
         String integrationType,
-        String platformName,
-        String platformIcon,
         String integrationName,
         String customerName,
         Instant updatedAt

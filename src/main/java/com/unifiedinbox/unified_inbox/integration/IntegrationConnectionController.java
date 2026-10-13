@@ -4,6 +4,7 @@ package com.unifiedinbox.unified_inbox.integration;
 import com.unifiedinbox.unified_inbox.entity.IntegrationEntity;
 import com.unifiedinbox.unified_inbox.repository.IntegrationRepository;
 import com.unifiedinbox.unified_inbox.service.OrganizationService;
+import com.unifiedinbox.unified_inbox.core.dto.ConnectedIntegration;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
