@@ -8,6 +8,8 @@ public record ConversationSummary(
         Long integrationId,
         String integrationType,
         String integrationName,
+        String iconPath,
+        String integrationDisplayName,
         String customerName,
         Instant updatedAt
 ) {

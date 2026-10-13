@@ -14,10 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class IntegrationDisconnectService {
 
+    private static final Logger log =
+        LoggerFactory.getLogger(IntegrationDisconnectService.class);
     private final IntegrationRepository integrationRepository;
     private final OrganizationService organizationService;
     private final Map<String, IntegrationDisconnectHandler> handlers;
@@ -41,10 +45,19 @@ public class IntegrationDisconnectService {
         return handlers.containsKey(type);
     }
 
+
     @Transactional
     public void disconnect(Long organizationId, Long integrationId) {
 
+        log.info(
+                "[DISCONNECT] Service started. organizationId={}, integrationId={}",
+                organizationId,
+                integrationId
+        );
+
         organizationService.requireOwner(organizationId);
+
+        log.info("[DISCONNECT] Owner permission verified.");
 
         IntegrationEntity integration = integrationRepository
                 .findById(integrationId)
@@ -53,7 +66,16 @@ public class IntegrationDisconnectService {
                         "Integration not found."
                 ));
 
+        log.info(
+                "[DISCONNECT] Integration found. id={}, type={}, enabled={}",
+                integration.getId(),
+                integration.getType(),
+                integration.isEnabled()
+        );
+
         if (!integration.getOrganization().getId().equals(organizationId)) {
+            log.warn("[DISCONNECT] Organization mismatch.");
+
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
                     "Integration not found."
@@ -61,6 +83,7 @@ public class IntegrationDisconnectService {
         }
 
         if (!integration.isEnabled()) {
+            log.info("[DISCONNECT] Integration already disabled.");
             return;
         }
 
@@ -68,13 +91,32 @@ public class IntegrationDisconnectService {
                 handlers.get(integration.getType());
 
         if (handler == null) {
+            log.error(
+                    "[DISCONNECT] No handler registered for type={}",
+                    integration.getType()
+            );
+
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Disconnect is not supported for this integration."
             );
         }
 
+        log.info(
+                "[DISCONNECT] Calling handler={}",
+                handler.getClass().getSimpleName()
+        );
+
         handler.disconnect(integration);
+
+        log.info("[DISCONNECT] Handler completed.");
+
         integration.setEnabled(false);
+
+        // Force database synchronization to detect SQL errors here.
+        integrationRepository.flush();
+
+        log.info("[DISCONNECT] Integration marked disabled and flushed.");
     }
+
 }

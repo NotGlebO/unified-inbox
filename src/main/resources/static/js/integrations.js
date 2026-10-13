@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (!confirmed) return;
 
                         const csrfInput = document.querySelector(
-                            "#integrationForm input[type='hidden']"
+                            'input[name="_csrf"]'
                         );
 
                         if (!csrfInput) {
@@ -134,11 +134,24 @@ document.addEventListener("DOMContentLoaded", () => {
                                 }
                             );
 
+                            
+                            console.log("[DISCONNECT] HTTP status:", response.status);
+
                             if (!response.ok) {
+                                const responseBody = await response.text();
+
+                                console.error("[DISCONNECT] Server error:", {
+                                    status: response.status,
+                                    body: responseBody
+                                });
+
                                 throw new Error(
-                                    `Disconnect failed: ${response.status}`
+                                    `Disconnect failed with HTTP ${response.status}`
                                 );
                             }
+
+                            console.log("[DISCONNECT] Request successful.");
+
 
                             await loadConnectedIntegrations();
 

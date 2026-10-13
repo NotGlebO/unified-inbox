@@ -451,25 +451,48 @@
     margin-left: auto;
 }
 
+
 .integration-disconnect-button {
-    padding: 8px 12px;
-    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 36px;
+    padding: 8px 16px;
+
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: var(--radius-sm);
+
     color: #f87171;
-    border: 1px solid #7f3030;
-    border-radius: 8px;
-    font-size: 12px;
+    font-family: inherit;
+    font-size: 13px;
     font-weight: 600;
+
     cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
 }
 
 .integration-disconnect-button:hover {
-    background: rgba(248, 113, 113, 0.12);
+    background: rgba(239, 68, 68, 0.24);
+    border-color: #ef4444;
+    color: #fca5a5;
+}
+
+.integration-disconnect-button:active {
+    background: rgba(239, 68, 68, 0.35);
+}
+
+.integration-disconnect-button:focus-visible {
+    outline: 2px solid #f87171;
+    outline-offset: 3px;
 }
 
 .integration-disconnect-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
 
 @media (max-width: 520px) {
     .integration-card-actions {
