@@ -1,7 +1,7 @@
 package com.unifiedinbox.unified_inbox.controller;
 
-import com.unifiedinbox.unified_inbox.entity.OrganizationEntity;
-import com.unifiedinbox.unified_inbox.entity.OrganizationMemberEntity;
+import com.unifiedinbox.unified_inbox.core.dto.OrganizationDetails;
+import com.unifiedinbox.unified_inbox.core.dto.OrganizationMemberDetails;
 import com.unifiedinbox.unified_inbox.service.OrganizationService;
 
 import org.springframework.stereotype.Controller;
@@ -28,10 +28,10 @@ public class OrganizationSettingsController {
             Model model
     ) {
 
-        OrganizationEntity organization =
+        OrganizationDetails organization =
                 organizationService.getOrganization(id);
 
-        List<OrganizationMemberEntity> members =
+        List<OrganizationMemberDetails> members =
                 organizationService.getMembers(id);
 
         model.addAttribute("organization", organization);

@@ -10,12 +10,15 @@ import com.unifiedinbox.unified_inbox.repository.MessageRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.unifiedinbox.unified_inbox.core.dto.MessageDetails;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @Service
 public class MessageService {
-
+    private final OrganizationService organizationService;
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final IntegrationRepository integrationRepository;
@@ -23,11 +26,13 @@ public class MessageService {
     public MessageService(
             MessageRepository messageRepository,
             ConversationRepository conversationRepository,
-            IntegrationRepository integrationRepository
+            IntegrationRepository integrationRepository,
+            OrganizationService organizationService
     ) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
         this.integrationRepository = integrationRepository;
+        this.organizationService = organizationService;
     }
 
     @Transactional
@@ -92,10 +97,36 @@ public class MessageService {
     }
 
     @Transactional(readOnly = true)
-    public List<MessageEntity> getMessages(Long conversationId) {
+    public List<MessageDetails> getMessages(Long conversationId) {
+
+        // 1. Находим переписку
+        ConversationEntity conversation = conversationRepository
+                .findById(conversationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Conversation not found."
+                ));
+
+        // 2. Определяем организацию переписки
+        Long organizationId = conversation
+                .getIntegration()
+                .getOrganization()
+                .getId();
+
+        // 3. Проверяем права пользователя
+        organizationService.requireMember(organizationId);
+
+        // 4. Загружаем сообщения и преобразуем их в DTO
         return messageRepository
-                .findByConversationIdOrderBySentAtAscIdAsc(
-                        conversationId
-                );
+                .findByConversationIdOrderBySentAtAscIdAsc(conversationId)
+                .stream()
+                .map(message -> new MessageDetails(
+                        message.getId(),
+                        message.getSenderName(),
+                        message.getText(),
+                        message.getSentAt(),
+                        message.getDirection()
+                ))
+                .toList();
     }
 }

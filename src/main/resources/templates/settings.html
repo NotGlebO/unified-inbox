@@ -55,12 +55,12 @@
 
                 <div class="member-details">
                     <div class="member-avatar"
-                         th:text="${#strings.substring(member.user.username, 0, 1).toUpperCase()}">
+                         th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">
                         U
                     </div>
 
                     <span class="member-name"
-                          th:text="${member.user.username}">
+                          th:text="${member.username}">
                         Username
                     </span>
                 </div>

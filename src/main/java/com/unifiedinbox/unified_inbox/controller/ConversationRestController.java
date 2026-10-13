@@ -1,0 +1,45 @@
+
+package com.unifiedinbox.unified_inbox.controller;
+
+import com.unifiedinbox.unified_inbox.core.dto.ConversationSummary;
+import com.unifiedinbox.unified_inbox.core.dto.MessageDetails;
+import com.unifiedinbox.unified_inbox.service.ConversationService;
+import com.unifiedinbox.unified_inbox.service.MessageService;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class ConversationRestController {
+
+    private final ConversationService conversationService;
+    private final MessageService messageService;
+
+    public ConversationRestController(
+            ConversationService conversationService,
+            MessageService messageService
+    ) {
+        this.conversationService = conversationService;
+        this.messageService = messageService;
+    }
+
+    @GetMapping("/organizations/{organizationId}/conversations")
+    public List<ConversationSummary> getConversations(
+            @PathVariable Long organizationId
+    ) {
+        return conversationService
+                .getOrganizationConversations(organizationId);
+    }
+
+    @GetMapping("/conversations/{conversationId}/messages")
+    public List<MessageDetails> getMessages(
+            @PathVariable Long conversationId
+    ) {
+        return messageService.getMessages(conversationId);
+    }
+}
