@@ -412,3 +412,227 @@
         margin-left: auto;
     }
 }
+
+/* ========================================
+   Integration modal
+======================================== */
+
+.integration-modal-backdrop[hidden],
+.integration-options[hidden],
+#integrationSetup[hidden] {
+    display: none !important;
+}
+
+.integration-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.integration-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+
+    padding: 26px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+
+.integration-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.integration-modal-header h3 {
+    margin: 0 0 6px;
+    color: var(--text);
+    font-size: 21px;
+}
+
+.integration-modal-header p,
+.integration-description {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.integration-close-button {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    color: var(--text);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.integration-label,
+.integration-field label {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.integration-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    width: 100%;
+    padding: 12px 14px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.integration-select-trigger > span:first-child,
+.integration-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.integration-select-trigger img,
+.integration-option img {
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.integration-options {
+    margin-top: 6px;
+    padding: 6px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.integration-option {
+    width: 100%;
+    padding: 11px 12px;
+
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.integration-option:hover,
+.integration-option:focus-visible {
+    background: rgba(96, 165, 250, 0.12);
+}
+
+#integrationSetup {
+    margin-top: 24px;
+}
+
+.integration-description {
+    margin-bottom: 18px;
+}
+
+.integration-instructions {
+    margin-bottom: 22px;
+    padding: 18px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.integration-instructions h4 {
+    margin: 0 0 12px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.integration-instructions ol {
+    margin: 0;
+    padding-left: 20px;
+
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.9;
+}
+
+.integration-field {
+    margin-bottom: 18px;
+}
+
+.integration-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+}
+
+.integration-field input:focus {
+    outline: none;
+    border-color: #60a5fa;
+}
+
+.integration-submit {
+    width: 100%;
+}
+
+.integration-submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.integration-feedback {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.integration-feedback:empty {
+    display: none;
+}
+
+@media (max-width: 520px) {
+    .integration-modal {
+        padding: 20px;
+    }
+}
