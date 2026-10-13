@@ -43,10 +43,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 "Accept": "application/json"
             }
         });
+        
+
+        
+        if (response.status === 404) {
+            window.location.replace("/organizations");
+            throw new Error("Organization access was revoked.");
+        }
 
         if (!response.ok) {
             throw new Error(`Request failed: ${response.status}`);
         }
+
 
         const contentType = response.headers.get("content-type") || "";
 
@@ -61,9 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
         setConnectionStatus("Loading conversations...", false);
 
         try {
+            
             const data = await fetchJson(
-                `/api/organizations/${encodeURIComponent(organizationId)}/conversations`
+                `/api/organizations/${encodeURIComponent(organizationId)}/conversations`,
+                true
             );
+
 
             if (!Array.isArray(data)) {
                 throw new Error("Invalid conversations response");
@@ -90,6 +101,35 @@ document.addEventListener("DOMContentLoaded", () => {
             setConnectionStatus("Connection error", true);
         }
     }
+    
+    async function fetchJson(url, redirectOnAccessLost = false) {
+
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "same-origin",
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+
+        if (response.status === 404 && redirectOnAccessLost) {
+            window.location.replace("/organizations");
+            throw new Error("Organization access was revoked.");
+        }
+
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const contentType = response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+            throw new Error("Expected JSON response. Please sign in again.");
+        }
+
+        return response.json();
+    }
+
 
     async function loadMessages(conversationId) {
         const requestVersion = ++messageRequestVersion;

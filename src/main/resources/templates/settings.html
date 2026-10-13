@@ -12,11 +12,13 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/organizations.css}">
     <link rel="stylesheet" th:href="@{/css/settings.css}">
+    <script th:src="@{/js/organization-access.js}" defer></script>
 </head>
 
 <body>
 
-<main class="dashboard">
+<main class="dashboard"
+    th:attr="data-organization-id=${organization.id}">
 
     <!-- Main navigation -->
     <header class="dashboard-header">
