@@ -442,3 +442,38 @@
     font-size: 13px;
     text-align: center;
 }
+
+
+.integration-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.integration-disconnect-button {
+    padding: 8px 12px;
+    background: transparent;
+    color: #f87171;
+    border: 1px solid #7f3030;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.integration-disconnect-button:hover {
+    background: rgba(248, 113, 113, 0.12);
+}
+
+.integration-disconnect-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+    .integration-card-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+}

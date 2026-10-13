@@ -1,32 +1,24 @@
-
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization Settings — Unified Inbox</title>
 
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/organizations.css}">
     <link rel="stylesheet" th:href="@{/css/settings.css}">
+    <link rel="stylesheet" th:href="@{/css/integrations.css}">
+
     <script th:src="@{/js/integrations.js}" defer></script>
     <script th:src="@{/js/organization-access.js}" defer></script>
 </head>
-
 <body>
-
-<main class="dashboard"
-    th:attr="data-organization-id=${organization.id}">
-
+<main class="dashboard" th:attr="data-organization-id=${organization.id}">
     <!-- Main navigation -->
     <header class="dashboard-header">
-
         <div class="dashboard-brand">
             <div class="dashboard-brand-icon">✉</div>
-
             <div>
                 <h1>Unified Inbox</h1>
                 <p>All your messages in one place</p>
@@ -34,302 +26,177 @@
         </div>
 
         <form th:action="@{/logout}" method="post">
-            <button class="logout-button" type="submit">
-                Sign Out
-            </button>
+            <button class="logout-button" type="submit">Sign Out</button>
         </form>
-
     </header>
 
     <section class="settings-content">
-
         <!-- Navigation links -->
         <nav class="settings-navigation">
-
-            <a class="back-link"
-               th:href="@{/organizations}">
-                ← Back to Organizations
-            </a>
-
+            <a class="back-link" th:href="@{/organizations}">← Back to Organizations</a>
             <a class="back-link"
                th:href="@{/organizations/{id}/conversations(id=${organization.id})}">
                 Open Inbox →
             </a>
-
         </nav>
 
         <!-- Page heading -->
         <div class="settings-title">
-
-            <h2 th:text="${organization.name}">
-                Organization Name
-            </h2>
-
-            <p class="settings-description">
-                Manage your organization and team members.
-            </p>
-
+            <h2 th:text="${organization.name}">Organization Name</h2>
+            <p class="settings-description">Manage your organization and team members.</p>
         </div>
 
         <!-- Feedback messages -->
-        <div class="message success"
-             th:if="${success}"
-             th:text="${success}">
-        </div>
-
-        <div class="message error"
-             th:if="${error}"
-             th:text="${error}">
-        </div>
+        <div class="message success" th:if="${success}" th:text="${success}"></div>
+        <div class="message error" th:if="${error}" th:text="${error}"></div>
 
         <!-- Add member panel -->
-        <section class="settings-panel add-member-panel"
-                 th:if="${isOwner}">
-
+        <section class="settings-panel add-member-panel" th:if="${isOwner}">
             <div class="panel-heading">
                 <div>
                     <h3>Add Member</h3>
-
-                    <p>
-                        Add an existing user to your organization
-                        by username.
-                    </p>
+                    <p>Add an existing user to your organization by username.</p>
                 </div>
             </div>
 
             <form class="add-member-form"
                   th:action="@{/organizations/{id}/members/add(id=${organization.id})}"
                   method="post">
-
-                <label class="sr-only" for="memberUsername">
-                    Username
-                </label>
-
-                <input
-                    id="memberUsername"
-                    type="text"
-                    name="username"
-                    placeholder="Enter username..."
-                    maxlength="50"
-                    autocomplete="off"
-                    required
-                >
-
-                <button class="add-member-button"
-                        type="submit">
-                    + Add Member
-                </button>
-
+                <label class="sr-only" for="memberUsername">Username</label>
+                <input id="memberUsername"
+                       type="text"
+                       name="username"
+                       placeholder="Enter username..."
+                       maxlength="50"
+                       autocomplete="off"
+                       required>
+                <button class="add-member-button" type="submit">+ Add Member</button>
             </form>
-
         </section>
 
-    
+        <!-- Members panel -->
+        <section class="settings-panel members-panel">
+            <div class="panel-heading members-heading">
+                <div>
+                    <h3>Organization Members</h3>
+                    <p>People who have access to this workspace.</p>
+                </div>
+                <span class="members-count"
+                      th:text="${#lists.size(members)} + ' members'">0 members</span>
+            </div>
 
-
-        <!-- Integration modal -->
-        <div
-            th:if="${isOwner}"
-            class="integration-modal-backdrop"
-            id="integrationModal"
-            hidden>
-
-            <section
-                class="integration-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="integrationModalTitle">
-
-                <div class="integration-modal-header">
-                    <div>
-                        <h3 id="integrationModalTitle">Add Integration</h3>
-                        <p>Choose a service to connect.</p>
+            <div class="members-list">
+                <div class="member-item" th:each="member : ${members}">
+                    <div class="member-details">
+                        <div class="member-avatar"
+                             th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">U</div>
+                        <div class="member-info">
+                            <span class="member-name" th:text="${member.username}">Username</span>
+                            <span class="member-role" th:text="${member.role}">MEMBER</span>
+                        </div>
                     </div>
 
-                    <button
-                        type="button"
+                    <div class="member-actions">
+                        <span class="owner-protected"
+                              th:if="${member.role.name() == 'OWNER'}">Protected</span>
+
+                        <form th:if="${isOwner and member.role.name() != 'OWNER'}"
+                              th:action="@{/organizations/{id}/members/{memberId}/remove(id=${organization.id},memberId=${member.id})}"
+                              method="post"
+                              onsubmit="return confirm('Remove this member from the organization?');">
+                            <button class="remove-member-button" type="submit">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Integrations panel -->
+        <section class="settings-panel integrations-panel">
+            <div class="panel-heading">
+                <div>
+                    <h3>Integrations</h3>
+                    <p>Connect messaging services to your organization.</p>
+                </div>
+            </div>
+
+            <!-- Populated by integrations.js for all organization members -->
+            <div id="connectedIntegrations" class="connected-integrations">
+                <p class="integration-empty">Loading integrations...</p>
+            </div>
+
+            <button th:if="${isOwner}"
+                    type="button"
+                    class="add-member-button"
+                    id="openIntegrationModal">+ Add Integration</button>
+
+            <p class="settings-description" th:unless="${isOwner}">
+                Only the organization owner can add integrations.
+            </p>
+        </section>
+    </section>
+
+    <!-- Universal integration modal: owner only -->
+    <div th:if="${isOwner}"
+         class="integration-modal-backdrop"
+         id="integrationModal"
+         hidden>
+        <section class="integration-modal"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="integrationModalTitle">
+            <div class="integration-modal-header">
+                <div>
+                    <h3 id="integrationModalTitle">Add Integration</h3>
+                    <p>Choose a service to connect.</p>
+                </div>
+                <button type="button"
                         class="integration-close-button"
                         id="closeIntegrationModal"
-                        aria-label="Close">
-                        &times;
-                    </button>
-                </div>
+                        aria-label="Close">&times;</button>
+            </div>
 
-                <label class="integration-label" for="integrationSelect">
-                    Service
-                </label>
-
-                <button
-                    type="button"
+            <label class="integration-label" for="integrationSelect">Service</label>
+            <button type="button"
                     class="integration-select-trigger"
                     id="integrationSelect"
                     aria-haspopup="listbox"
                     aria-expanded="false"
                     aria-controls="integrationOptions">
-                    <span id="integrationSelectedService">
-                        Choose a service...
-                    </span>
-                    <span aria-hidden="true">⌄</span>
-                </button>
+                <span id="integrationSelectedService">Choose a service...</span>
+                <span aria-hidden="true">⌄</span>
+            </button>
 
-                <div
-                    class="integration-options"
-                    id="integrationOptions"
-                    role="listbox"
-                    aria-label="Available services"
-                    hidden>
+            <div class="integration-options"
+                 id="integrationOptions"
+                 role="listbox"
+                 aria-label="Available services"
+                 hidden></div>
+
+            <div id="integrationSetup" hidden>
+                <p class="integration-description" id="integrationDescription"></p>
+                <div class="integration-instructions">
+                    <h4>How to connect</h4>
+                    <ol id="integrationInstructions"></ol>
                 </div>
 
-                <div id="integrationSetup" hidden>
-
-                    <p class="integration-description"
-                    id="integrationDescription"></p>
-
-                    <div class="integration-instructions">
-                        <h4>How to connect</h4>
-                        <ol id="integrationInstructions"></ol>
-                    </div>
-
-                    <form id="integrationForm" method="post">
-
-                        <input
-                            type="hidden"
-                            th:name="${_csrf.parameterName}"
-                            th:value="${_csrf.token}">
-
-                        <div id="integrationFields"></div>
-
-                        <button
-                            type="submit"
+                <form id="integrationForm" method="post">
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}">
+                    <div id="integrationFields"></div>
+                    <button type="submit"
                             class="add-member-button integration-submit"
-                            id="integrationSubmit">
-                            Connect
-                        </button>
-
-                    </form>
-
-                </div>
-
-                <p class="integration-feedback"
-                id="integrationFeedback"
-                role="status"
-                aria-live="polite"></p>
-
-            </section>
-
-
-        </div>
-
-        <!-- Members panel -->
-        <section class="settings-panel members-panel">
-
-            <div class="panel-heading members-heading">
-
-                <div>
-                    <h3>Organization Members</h3>
-
-                    <p>
-                        People who have access to this workspace.
-                    </p>
-                </div>
-
-                <span class="members-count"
-                      th:text="${#lists.size(members)} + ' members'">
-                    0 members
-                </span>
-
+                            id="integrationSubmit">Connect</button>
+                </form>
             </div>
 
-            <div class="members-list">
-
-                <div class="member-item"
-                     th:each="member : ${members}">
-
-                    <div class="member-details">
-
-                        <div class="member-avatar"
-                             th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">
-                            U
-                        </div>
-
-                        <div class="member-info">
-
-                            <span class="member-name"
-                                  th:text="${member.username}">
-                                Username
-                            </span>
-
-                            <span class="member-role"
-                                  th:text="${member.role}">
-                                MEMBER
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                    <div class="member-actions">
-
-                        <!-- Organization owner -->
-                        <span class="owner-protected"
-                              th:if="${member.role.name() == 'OWNER'}">
-                            Protected
-                        </span>
-
-                        <!-- Owner can remove regular members -->
-                        <form
-                            th:if="${isOwner and member.role.name() != 'OWNER'}"
-                            th:action="@{/organizations/{id}/members/{memberId}/remove(id=${organization.id},memberId=${member.id})}"
-                            method="post"
-                            onsubmit="return confirm('Remove this member from the organization?');">
-
-                            <button class="remove-member-button"
-                                    type="submit">
-                                Remove
-                            </button>
-
-                        </form>
-
-                    </div>
-                    </section>
-                        <!-- Integrations panel -->
-                    <section class="settings-panel integrations-panel">
-
-                        <div class="panel-heading">
-                            <div>
-                                <h3>Integrations</h3>
-                                <p>
-                                    Connect messaging services to your organization.
-                                </p>
-                            </div>
-                        </div>
-                        <div id="connectedIntegrations" class="connected-integrations">
-                            <p class="integration-empty">Loading integrations...</p>
-                        </div>
-
-                        <button
-                            th:if="${isOwner}"
-                            type="button"
-                            class="add-member-button"
-                            id="openIntegrationModal">
-                            + Add Integration
-                        </button>
-
-                        <p class="settings-description" th:unless="${isOwner}">
-                            Only the organization owner can add integrations.
-                        </p>
-
-                    </section>
-
-                </div>
-
-            </div>
-
+            <p class="integration-feedback"
+               id="integrationFeedback"
+               role="status"
+               aria-live="polite"></p>
         </section>
-
-        
-
+    </div>
 </main>
-
 </body>
 </html>

@@ -22,6 +22,152 @@ document.addEventListener("DOMContentLoaded", () => {
     let providers = [];
     let selectedProvider = null;
 
+
+    
+    const connectedContainer =
+        document.getElementById("connectedIntegrations");
+
+    async function loadConnectedIntegrations() {
+        if (!connectedContainer) return;
+
+        try {
+            const response = await fetch(
+                `/organizations/${encodeURIComponent(organizationId)}/integrations/connected`,
+                {
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept": "application/json"
+                    },
+                    cache: "no-store"
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to load integrations: ${response.status}`
+                );
+            }
+
+            const integrations = await response.json();
+
+            connectedContainer.replaceChildren();
+
+            if (integrations.length === 0) {
+                const empty = document.createElement("p");
+                empty.className = "integration-empty";
+                empty.textContent = "No integrations connected yet.";
+                connectedContainer.appendChild(empty);
+                return;
+            }
+
+            for (const integration of integrations) {
+                const card = document.createElement("div");
+                card.className = "connected-integration";
+
+                const icon = document.createElement("img");
+                icon.className = "connected-integration-icon";
+                icon.src = integration.iconPath || "/icons/telegram.svg";
+                icon.alt = "";
+
+                const info = document.createElement("div");
+                info.className = "connected-integration-info";
+
+                const name = document.createElement("strong");
+                name.textContent = integration.displayName;
+
+                const type = document.createElement("small");
+                type.textContent = integration.type;
+
+                info.append(name, type);
+
+                const status = document.createElement("span");
+                status.className = integration.enabled
+                    ? "integration-status-connected"
+                    : "integration-status-disabled";
+
+                status.textContent = integration.enabled
+                    ? "Connected"
+                    : "Disabled";
+
+                
+                const actions = document.createElement("div");
+                actions.className = "integration-card-actions";
+
+                actions.appendChild(status);
+
+                if (integration.disconnectable && openButton) {
+                    const disconnectButton = document.createElement("button");
+                    disconnectButton.type = "button";
+                    disconnectButton.className = "integration-disconnect-button";
+                    disconnectButton.textContent = "Disconnect";
+
+                    disconnectButton.addEventListener("click", async () => {
+                        const confirmed = confirm(
+                            `Disconnect ${integration.displayName}?`
+                        );
+
+                        if (!confirmed) return;
+
+                        const csrfInput = document.querySelector(
+                            "#integrationForm input[type='hidden']"
+                        );
+
+                        if (!csrfInput) {
+                            alert("CSRF token is missing.");
+                            return;
+                        }
+
+                        disconnectButton.disabled = true;
+                        disconnectButton.textContent = "Disconnecting...";
+
+                        try {
+                            const response = await fetch(
+                                `/organizations/${encodeURIComponent(organizationId)}` +
+                                `/integrations/${encodeURIComponent(integration.id)}/disconnect`,
+                                {
+                                    method: "POST",
+                                    credentials: "same-origin",
+                                    headers: {
+                                        "Accept": "application/json",
+                                        [csrfInput.name]: csrfInput.value
+                                    }
+                                }
+                            );
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    `Disconnect failed: ${response.status}`
+                                );
+                            }
+
+                            await loadConnectedIntegrations();
+
+                        } catch (error) {
+                            console.error(error);
+                            alert("Could not disconnect integration.");
+                            disconnectButton.disabled = false;
+                            disconnectButton.textContent = "Disconnect";
+                        }
+                    });
+
+                    actions.appendChild(disconnectButton);
+                }
+
+                card.append(icon, info, actions);
+                connectedContainer.appendChild(card);
+
+            }
+
+        } catch (error) {
+            console.error(error);
+
+            connectedContainer.textContent =
+                "Could not load connected integrations.";
+        }
+    }
+
+    loadConnectedIntegrations();
+
     function setFeedback(message) {
         feedback.textContent = message;
     }
