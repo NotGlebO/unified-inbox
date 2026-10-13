@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -17,6 +18,7 @@
 
 <main class="dashboard">
 
+    <!-- Main navigation -->
     <header class="dashboard-header">
 
         <div class="dashboard-brand">
@@ -38,7 +40,8 @@
 
     <section class="settings-content">
 
-        <div class="settings-navigation">
+        <!-- Navigation links -->
+        <nav class="settings-navigation">
 
             <a class="back-link"
                th:href="@{/organizations}">
@@ -47,11 +50,12 @@
 
             <a class="back-link"
                th:href="@{/organizations/{id}/conversations(id=${organization.id})}">
-                → Open Inbox
+                Open Inbox →
             </a>
 
-        </div>
+        </nav>
 
+        <!-- Page heading -->
         <div class="settings-title">
 
             <h2 th:text="${organization.name}">
@@ -59,116 +63,141 @@
             </h2>
 
             <p class="settings-description">
-                Manage your organization and its members.
+                Manage your organization and team members.
             </p>
 
         </div>
 
-        <!-- Success and error messages -->
+        <!-- Feedback messages -->
+        <div class="message success"
+             th:if="${success}"
+             th:text="${success}">
+        </div>
 
-        <p class="message success"
-           th:if="${success}"
-           th:text="${success}">
-        </p>
+        <div class="message error"
+             th:if="${error}"
+             th:text="${error}">
+        </div>
 
-        <p class="message error"
-           th:if="${error}"
-           th:text="${error}">
-        </p>
+        <!-- Add member panel -->
+        <section class="settings-panel add-member-panel"
+                 th:if="${isOwner}">
 
-        <!-- Members -->
+            <div class="panel-heading">
+                <div>
+                    <h3>Add Member</h3>
 
-        <div class="settings-panel">
-            
-            <!-- Add member form: visible only to the owner -->
-            <div class="add-member-section" th:if="${isOwner}">
-
-                <div class="add-member-heading">
-                    <h4>Add Member</h4>
                     <p>
-                        Enter the username of an existing user
-                        to add them to this organization.
+                        Add an existing user to your organization
+                        by username.
+                    </p>
+                </div>
+            </div>
+
+            <form class="add-member-form"
+                  th:action="@{/organizations/{id}/members/add(id=${organization.id})}"
+                  method="post">
+
+                <label class="sr-only" for="memberUsername">
+                    Username
+                </label>
+
+                <input
+                    id="memberUsername"
+                    type="text"
+                    name="username"
+                    placeholder="Enter username..."
+                    maxlength="50"
+                    autocomplete="off"
+                    required
+                >
+
+                <button class="add-member-button"
+                        type="submit">
+                    + Add Member
+                </button>
+
+            </form>
+
+        </section>
+
+        <!-- Members panel -->
+        <section class="settings-panel members-panel">
+
+            <div class="panel-heading members-heading">
+
+                <div>
+                    <h3>Organization Members</h3>
+
+                    <p>
+                        People who have access to this workspace.
                     </p>
                 </div>
 
-                <form class="add-member-form"
-                    th:action="@{/organizations/{id}/members/add(id=${organization.id})}"
-                    method="post">
-
-                    <input
-                        type="text"
-                        name="username"
-                        placeholder="Enter username..."
-                        maxlength="50"
-                        autocomplete="off"
-                        required
-                    >
-
-                    <button class="add-member-button"
-                            type="submit">
-                        + Add Member
-                    </button>
-
-                </form>
+                <span class="members-count"
+                      th:text="${#lists.size(members)} + ' members'">
+                    0 members
+                </span>
 
             </div>
 
+            <div class="members-list">
 
-            <h3>Organization Members</h3>
+                <div class="member-item"
+                     th:each="member : ${members}">
 
-            <div class="member-item"
-                 th:each="member : ${members}">
+                    <div class="member-details">
 
-                <div class="member-details">
+                        <div class="member-avatar"
+                             th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">
+                            U
+                        </div>
 
-                    <div class="member-avatar"
-                         th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">
-                        U
+                        <div class="member-info">
+
+                            <span class="member-name"
+                                  th:text="${member.username}">
+                                Username
+                            </span>
+
+                            <span class="member-role"
+                                  th:text="${member.role}">
+                                MEMBER
+                            </span>
+
+                        </div>
+
                     </div>
 
-                    <div class="member-info">
+                    <div class="member-actions">
 
-                        <span class="member-name"
-                              th:text="${member.username}">
-                            Username
+                        <!-- Organization owner -->
+                        <span class="owner-protected"
+                              th:if="${member.role.name() == 'OWNER'}">
+                            Protected
                         </span>
 
-                        <span class="member-role"
-                              th:text="${member.role}">
-                            MEMBER
-                        </span>
+                        <!-- Owner can remove regular members -->
+                        <form
+                            th:if="${isOwner and member.role.name() != 'OWNER'}"
+                            th:action="@{/organizations/{id}/members/{memberId}/remove(id=${organization.id},memberId=${member.id})}"
+                            method="post"
+                            onsubmit="return confirm('Remove this member from the organization?');">
+
+                            <button class="remove-member-button"
+                                    type="submit">
+                                Remove
+                            </button>
+
+                        </form>
 
                     </div>
 
                 </div>
 
-                <div class="member-actions">
-
-                    <!-- Owner cannot be removed -->
-                    <span class="owner-protected"
-                          th:if="${member.role.name() == 'OWNER'}">
-                        Protected
-                    </span>
-
-                    <!-- Only owners can remove regular members -->
-                    <form
-                        th:if="${isOwner and member.role.name() != 'OWNER'}"
-                        th:action="@{/organizations/{id}/members/{memberId}/remove(id=${organization.id},memberId=${member.id})}"
-                        method="post"
-                        onsubmit="return confirm('Remove this member from the organization?');">
-
-                        <button class="remove-member-button"
-                                type="submit">
-                            Remove
-                        </button>
-
-                    </form>
-
-                </div>
-
             </div>
 
-        </div>
+        </section>
 
     </section>
 

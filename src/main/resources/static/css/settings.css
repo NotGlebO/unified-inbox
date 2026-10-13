@@ -1,39 +1,55 @@
-/* Settings page */
+
+/* ========================================
+   Settings page layout
+======================================== */
 
 .settings-content {
     max-width: 1000px;
     margin: 0 auto;
-    padding: 45px 24px;
+    padding: 45px 24px 70px;
 }
 
-/* Navigation */
+/* ========================================
+   Navigation
+======================================== */
 
 .settings-navigation {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 24px;
-    margin-bottom: 30px;
-}
-
-.back-link {
-    display: inline-block;
-    font-size: 14px;
+    margin-bottom: 32px;
 }
 
 .settings-navigation .back-link {
-    margin-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
 }
 
-/* Settings heading */
+.settings-navigation .back-link:hover {
+    color: #93c5fd;
+}
+
+/* ========================================
+   Page heading
+======================================== */
 
 .settings-title {
-    margin-bottom: 30px;
+    margin-bottom: 32px;
 }
 
 .settings-title h2 {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
+    color: var(--text);
     font-size: 28px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .settings-description {
@@ -42,35 +58,167 @@
     font-size: 14px;
 }
 
-/* Settings panel */
+/* ========================================
+   Common panels
+======================================== */
 
 .settings-panel {
-    padding: 25px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
+    padding: 26px;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
 }
 
-.settings-panel h3 {
-    margin: 0 0 20px;
-    font-size: 18px;
+.panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
 }
 
-/* Organization members */
+.panel-heading h3 {
+    margin: 0 0 6px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.panel-heading p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+/* ========================================
+   Add member form
+======================================== */
+
+.add-member-form {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+}
+
+.add-member-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.add-member-form input::placeholder {
+    color: var(--muted);
+}
+
+.add-member-form input:hover {
+    border-color: #456080;
+}
+
+.add-member-form input:focus {
+    border-color: #60a5fa;
+}
+
+.add-member-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    min-height: 44px;
+    padding: 11px 20px;
+
+    background: var(--blue);
+    border: 1px solid var(--blue);
+    border-radius: var(--radius-sm);
+
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.add-member-button:hover {
+    background: var(--blue-hover);
+    border-color: var(--blue-hover);
+}
+
+.add-member-button:active {
+    background: #1e40af;
+}
+
+.add-member-button:focus-visible {
+    outline: 2px solid #93c5fd;
+    outline-offset: 3px;
+}
+
+/* ========================================
+   Members panel
+======================================== */
+
+.members-heading {
+    align-items: center;
+}
+
+.members-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    padding: 6px 12px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.members-list {
+    width: 100%;
+}
 
 .member-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    padding: 18px 0;
+
+    padding: 17px 0;
     border-bottom: 1px solid var(--border);
 }
 
+.member-item:first-child {
+    padding-top: 0;
+}
+
 .member-item:last-child {
+    padding-bottom: 0;
     border-bottom: none;
 }
+
+/* ========================================
+   Member information
+======================================== */
 
 .member-details {
     display: flex;
@@ -82,11 +230,14 @@
 .member-avatar {
     display: grid;
     place-items: center;
+
     width: 42px;
     height: 42px;
     flex-shrink: 0;
+
     background: #315b94;
     border-radius: 50%;
+
     color: #ffffff;
     font-size: 15px;
     font-weight: 700;
@@ -111,15 +262,20 @@
     display: inline-flex;
     align-items: center;
     width: fit-content;
+
     padding: 4px 9px;
+
     background: #1e3a5f;
     border-radius: 6px;
+
     color: #60a5fa;
     font-size: 10px;
     font-weight: 700;
 }
 
-/* Member actions */
+/* ========================================
+   Member actions
+======================================== */
 
 .member-actions {
     display: flex;
@@ -131,18 +287,27 @@
     margin: 0;
 }
 
-/* Remove member button */
+.owner-protected {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ========================================
+   Remove button
+======================================== */
 
 .member-actions .remove-member-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
 
-    padding: 9px 18px;
+    min-height: 36px;
+    padding: 8px 16px;
 
     background: rgba(239, 68, 68, 0.12);
     border: 1px solid rgba(239, 68, 68, 0.4);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
 
     color: #f87171;
     font-family: inherit;
@@ -168,27 +333,82 @@
     outline-offset: 3px;
 }
 
-/* Owner protection */
+/* ========================================
+   Accessibility
+======================================== */
 
-.owner-protected {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
-/* Mobile */
+/* ========================================
+   Responsive design
+======================================== */
 
-@media (max-width: 600px) {
+@media (max-width: 650px) {
+
     .settings-content {
-        padding: 30px 16px;
+        padding: 30px 16px 50px;
+    }
+
+    .settings-panel {
+        padding: 20px 16px;
+    }
+
+    .settings-title h2 {
+        font-size: 24px;
+    }
+
+    .add-member-form {
+        flex-direction: column;
+    }
+
+    .add-member-button {
+        width: 100%;
+    }
+
+    .members-heading {
+        align-items: flex-start;
+    }
+
+    .member-item {
+        gap: 12px;
+    }
+
+    .member-details {
+        gap: 10px;
+    }
+
+    .member-avatar {
+        width: 38px;
+        height: 38px;
+    }
+
+    .member-actions .remove-member-button {
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 400px) {
+
+    .members-heading {
+        flex-direction: column;
+        gap: 12px;
     }
 
     .member-item {
         flex-wrap: wrap;
     }
 
-    .member-details {
-        min-width: 0;
+    .member-actions {
+        margin-left: auto;
     }
 }
-
