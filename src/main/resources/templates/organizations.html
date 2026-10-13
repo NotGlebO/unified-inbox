@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Unified Inbox — My Organizations</title>
+    <title>My Organizations — Unified Inbox</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/organizations.css}">
 </head>
 <body>
 
@@ -15,7 +16,7 @@
 
     <header class="dashboard-header">
         <div class="dashboard-brand">
-            <div class="brand-icon">✉</div>
+            <div class="dashboard-brand-icon">✉</div>
             <div>
                 <h1>Unified Inbox</h1>
                 <p>All your messages in one place</p>
@@ -77,50 +78,31 @@
                     Organization Name
                 </h3>
 
-                <p>Owner</p>
-
-                
                 <div class="organization-actions">
 
-                    
                     <span class="organization-role"
-                        th:text="${organization.role}">
-                        MEMBER
+                          th:text="${organization.role}">
+                        OWNER
                     </span>
 
-
-                    <div class="organization-navigation">
-                    <a th:href="@{/organizations/{id}/conversations(id=${organization.id})}"
-                    class="organization-nav-btn">
-                        Conversations
-                    </a>
-
-                    <a th:href="@{/organizations/{id}/settings(id=${organization.id})}"
-                    class="organization-nav-btn">
+                    <a class="settings-link"
+                       th:href="@{/organizations/{id}/settings(id=${organization.id})}">
                         Settings
                     </a>
-                </div>
 
                 </div>
-
-
             </div>
-
         </div>
 
         <div class="empty-state"
              th:if="${#lists.isEmpty(organizations)}">
 
             <h3>No organizations yet</h3>
-
-            <p>
-                Create your first organization to get started.
-            </p>
+            <p>Create your first organization to get started.</p>
 
         </div>
 
     </section>
-
 </main>
 
 </body>

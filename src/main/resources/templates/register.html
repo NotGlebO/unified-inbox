@@ -5,44 +5,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Unified Inbox — Sign Up</title>
+    <title>Create Account — Unified Inbox</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
 <body>
 
 <main class="auth-page">
     <div class="auth-container">
 
-        <div class="brand">
-            <div class="brand-icon">✉</div>
+        <header class="auth-brand">
+            <div class="auth-brand-icon" aria-hidden="true">
+                ✉
+            </div>
             <h1>Unified Inbox</h1>
-        </div>
+        </header>
 
-        <p class="subtitle">
+        <p class="auth-subtitle">
             All your messages in one place
         </p>
 
-        <div class="auth-card">
-
-            <h2>Create Account</h2>
+        <section class="auth-card">
+            <h2>Create an account</h2>
 
             <p class="auth-description">
-                Sign up to start managing your conversations.
+                Get started with Unified Inbox.
             </p>
 
-            <!-- Registration error -->
-            <p
-                class="message error"
-                th:if="${error}"
-                th:text="${error}"
-            ></p>
+            <p class="message error"
+               th:if="${error}"
+               th:text="${error}"
+               role="alert">
+            </p>
 
-            <form th:action="@{/register}" method="post">
+            <form class="auth-form"
+                  th:action="@{/register}"
+                  method="post">
 
                 <div class="form-group">
                     <label for="username">Username</label>
-
                     <input
                         id="username"
                         name="username"
@@ -52,6 +54,7 @@
                         minlength="3"
                         maxlength="30"
                         pattern="[a-zA-Z0-9_]+"
+                        title="Use 3–30 Latin letters, numbers or underscores"
                         autocomplete="username"
                         required
                     >
@@ -59,7 +62,6 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-
                     <input
                         id="password"
                         name="password"
@@ -81,8 +83,12 @@
                 Already have an account?
                 <a th:href="@{/login}">Sign In</a>
             </div>
+        </section>
 
-        </div>
+        <footer class="auth-footer">
+            Unified Inbox
+        </footer>
+
     </div>
 </main>
 

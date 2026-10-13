@@ -1,4 +1,3 @@
-
 package com.unifiedinbox.unified_inbox.entity;
 
 import jakarta.persistence.*;
@@ -16,51 +15,39 @@ public class IntegrationEntity {
     @JoinColumn(name = "organization_id", nullable = false)
     private OrganizationEntity organization;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private IntegrationType type;
+    @Column(nullable = false)
+    private String type;
 
-    @Column(name = "display_name", nullable = false, length = 100)
+    @Column(nullable = false)
     private String displayName;
 
-    @Column(name = "external_bot_id")
-    private Long externalBotId;
-
-    @Column(name = "encrypted_token", length = 1024)
-    private String encryptedToken;
+    private String iconPath;
 
     @Column(nullable = false)
     private boolean enabled = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     protected IntegrationEntity() {
     }
 
-    
     public IntegrationEntity(
             OrganizationEntity organization,
-            IntegrationType type,
+            String type,
             String displayName,
-            Long externalBotId,
-            String encryptedToken
+            String iconPath
     ) {
         this.organization = organization;
         this.type = type;
         this.displayName = displayName;
-        this.externalBotId = externalBotId;
-        this.encryptedToken = encryptedToken;
+        this.iconPath = iconPath;
         this.enabled = true;
-        this.createdAt = Instant.now();
     }
-
 
     @PrePersist
     public void onCreate() {
-        if (createdAt == null) {
-            createdAt = Instant.now();
-        }
+        this.createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -71,7 +58,7 @@ public class IntegrationEntity {
         return organization;
     }
 
-    public IntegrationType getType() {
+    public String getType() {
         return type;
     }
 
@@ -79,8 +66,8 @@ public class IntegrationEntity {
         return displayName;
     }
 
-    public String getEncryptedToken() {
-        return encryptedToken;
+    public String getIconPath() {
+        return iconPath;
     }
 
     public boolean isEnabled() {
@@ -89,10 +76,6 @@ public class IntegrationEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
-    }
-
-    public Long getExternalBotId() {
-        return externalBotId;
     }
 
     public void setEnabled(boolean enabled) {

@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
-public class OrganizationController {
+public class OrganizationPageController {
 
     private final OrganizationService organizationService;
 
-    public OrganizationController(
+    public OrganizationPageController(
             OrganizationService organizationService
     ) {
         this.organizationService = organizationService;

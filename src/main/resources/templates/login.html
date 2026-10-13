@@ -5,49 +5,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Unified Inbox — Sign In</title>
+    <title>Sign In — Unified Inbox</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
 <body>
 
 <main class="auth-page">
     <div class="auth-container">
 
-        <div class="brand">
-            <div class="brand-icon">✉</div>
+        <header class="auth-brand">
+            <div class="auth-brand-icon" aria-hidden="true">
+                ✉
+            </div>
             <h1>Unified Inbox</h1>
-        </div>
+        </header>
 
-        <p class="subtitle">
+        <p class="auth-subtitle">
             All your messages in one place
         </p>
 
-        <div class="auth-card">
-
-            <h2>Sign In</h2>
+        <section class="auth-card">
+            <h2>Welcome back</h2>
 
             <p class="auth-description">
-                Welcome back! Sign in to your account.
+                Sign in to manage your conversations.
             </p>
 
-            <p class="message error" th:if="${param.error}">
+            <p class="message error"
+               th:if="${param.error}"
+               role="alert">
                 Invalid username or password.
             </p>
 
-            <p class="message success" th:if="${param.logout}">
-                You have been signed out.
+            <p class="message success"
+               th:if="${param.logout}"
+               role="status">
+                You have been signed out successfully.
             </p>
 
-            <p class="message success" th:if="${param.registered}">
+            <p class="message success"
+               th:if="${param.registered}"
+               role="status">
                 Account created successfully. Please sign in.
             </p>
 
-            <form th:action="@{/login}" method="post">
+            <form class="auth-form"
+                  th:action="@{/login}"
+                  method="post">
 
                 <div class="form-group">
                     <label for="username">Username</label>
-
                     <input
                         id="username"
                         name="username"
@@ -60,7 +69,6 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-
                     <input
                         id="password"
                         name="password"
@@ -81,8 +89,12 @@
                 Don't have an account?
                 <a th:href="@{/register}">Sign Up</a>
             </div>
+        </section>
 
-        </div>
+        <footer class="auth-footer">
+            Unified Inbox
+        </footer>
+
     </div>
 </main>
 

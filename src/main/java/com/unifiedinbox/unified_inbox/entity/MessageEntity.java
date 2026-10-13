@@ -1,152 +1,88 @@
 package com.unifiedinbox.unified_inbox.entity;
 
+import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
 import jakarta.persistence.*;
+
 import java.time.Instant;
 
 @Entity
-@Table(name = "messages")
+@Table(
+    name = "messages",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_message_conversation_external",
+        columnNames = {"conversation_id", "external_message_id"}
+    )
+)
 public class MessageEntity {
 
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "source", nullable = false)
-    private String source = "TELEGRAM";
-
-
-    @Column(name = "external_chat_id")
-    private String externalChatId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "conversation_id", nullable = false)
+    private ConversationEntity conversation;
 
     @Column(name = "external_message_id")
     private String externalMessageId;
-    
-    @Column(name = "telegram_message_id")
-    private Long telegramMessageId;
-
-    @Column(name = "chat_id")
-    private Long chatId;
 
     @Column(nullable = false)
-    private String sender;
+    private String senderName;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String text;
 
-    @Column(name = "received_at", nullable = false)
-    private Instant receivedAt;
+    @Column(nullable = false)
+    private Instant sentAt;
 
-    @Column(name = "direction", nullable = false)
-    private String direction = "INCOMING";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MessageDirection direction;
 
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "conversation_id")
-    private ConversationEntity conversation;
-
-
-    public MessageEntity() {
+    protected MessageEntity() {
     }
 
     public MessageEntity(
-            Long telegramMessageId,
-            Long chatId,
-            String sender,
-            String text,
-            Instant receivedAt
-    ) {
-        this.telegramMessageId = telegramMessageId;
-        this.chatId = chatId;
-        this.sender = sender;
-        this.text = text;
-        this.receivedAt = receivedAt;
-        this.source = "TELEGRAM";
-        this.direction = "INCOMING";
-    }
-
-    public MessageEntity(
-            String externalChatId,
+            ConversationEntity conversation,
             String externalMessageId,
-            String sender,
+            String senderName,
             String text,
-            Instant receivedAt
+            Instant sentAt,
+            MessageDirection direction
     ) {
-        this.externalChatId = externalChatId;
+        this.conversation = conversation;
         this.externalMessageId = externalMessageId;
-        this.sender = sender;
+        this.senderName = senderName;
         this.text = text;
-        this.receivedAt = receivedAt;
-        this.source = "WHATSAPP";
-        this.direction = "INCOMING";
-    }
-
-        public MessageEntity(
-        String gmailMessageId,
-        String sender,
-        String text,
-        Instant receivedAt
-    ) {
-        this.externalMessageId = gmailMessageId;
-        this.sender = sender;
-        this.text = text;
-        this.receivedAt = receivedAt;
-        this.source = "GMAIL";
-        this.direction = "INCOMING";
+        this.sentAt = sentAt;
+        this.direction = direction;
     }
 
     public Long getId() {
         return id;
     }
 
-    public Long getTelegramMessageId() {
-        return telegramMessageId;
+    public ConversationEntity getConversation() {
+        return conversation;
     }
 
-    public Long getChatId() {
-        return chatId;
+    public String getExternalMessageId() {
+        return externalMessageId;
     }
 
-    public String getSender() {
-        return sender;
+    public String getSenderName() {
+        return senderName;
     }
 
     public String getText() {
         return text;
     }
 
-    public Instant getReceivedAt() {
-        return receivedAt;
+    public Instant getSentAt() {
+        return sentAt;
     }
 
-    
-
-    public String getSource() {
-        return source;
-    }
-    public String getDirection() {
+    public MessageDirection getDirection() {
         return direction;
     }
-
-    public void setDirection(String direction) {
-        this.direction = direction;
-    }
-
-    public String getExternalChatId() {
-        return externalChatId;
-    }
-
-    public String getExternalMessageId() {
-        return externalMessageId;
-    }
-    
-    public ConversationEntity getConversation() {
-        return conversation;
-    }
-
-    public void setConversation(ConversationEntity conversation) {
-        this.conversation = conversation;
-    }
-
-
 }

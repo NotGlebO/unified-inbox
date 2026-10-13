@@ -1,0 +1,107 @@
+
+:root {
+    --bg: #0f1726;
+    --panel: #121d2e;
+    --input: #24344b;
+    --border: #2b3b52;
+
+    --text: #f3f6fc;
+    --muted: #93b4db;
+
+    --blue: #2563eb;
+    --blue-hover: #1d4ed8;
+
+    --danger: #f87171;
+    --success: #4ade80;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.5;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #93c5fd;
+    text-decoration: underline;
+}
+
+.primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    padding: 13px 18px;
+
+    background: var(--blue);
+    border: 1px solid var(--blue);
+    border-radius: var(--radius-sm);
+
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.primary-button:hover {
+    background: var(--blue-hover);
+    border-color: var(--blue-hover);
+}
+
+.primary-button:focus-visible,
+a:focus-visible {
+    outline: 2px solid #93c5fd;
+    outline-offset: 3px;
+}
+
+.primary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.message {
+    padding: 12px 14px;
+    margin: 0 0 20px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    text-align: center;
+}
+
+.message.error {
+    color: var(--danger);
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.message.success {
+    color: var(--success);
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+}

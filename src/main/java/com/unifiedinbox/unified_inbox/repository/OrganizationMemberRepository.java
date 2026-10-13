@@ -1,4 +1,3 @@
-
 package com.unifiedinbox.unified_inbox.repository;
 
 import com.unifiedinbox.unified_inbox.entity.OrganizationMemberEntity;
@@ -16,13 +15,7 @@ public interface OrganizationMemberRepository
             Long organizationId
     );
 
-    Optional<OrganizationMemberEntity>
-    findByOrganizationIdAndUserId(
-            Long organizationId,
-            Long userId
-    );
-
-    boolean existsByOrganizationIdAndUserId(
+    Optional<OrganizationMemberEntity> findByOrganizationIdAndUserId(
             Long organizationId,
             Long userId
     );

@@ -1,0 +1,149 @@
+
+.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 100vh;
+    padding: 32px 20px;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    margin-bottom: 12px;
+}
+
+.auth-brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+
+    background: var(--blue);
+    border-radius: var(--radius-md);
+
+    color: white;
+    font-size: 25px;
+}
+
+.auth-brand h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.auth-subtitle {
+    margin: 0 0 32px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 14px;
+}
+
+.auth-card {
+    padding: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.auth-card h2 {
+    margin: 0 0 8px;
+    font-size: 23px;
+    font-weight: 700;
+}
+
+.auth-description {
+    margin: 0 0 28px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 13px 14px;
+
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+
+    color: var(--text);
+    font-size: 14px;
+
+    transition: border-color 0.2s;
+}
+
+.form-group input::placeholder {
+    color: #8ba0bc;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.auth-form .primary-button {
+    margin-top: 4px;
+}
+
+.switch-auth {
+    margin-top: 26px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.switch-auth a {
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+.auth-footer {
+    margin-top: 24px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+}
+
+@media (max-width: 480px) {
+    .auth-page {
+        padding: 20px 16px;
+    }
+
+    .auth-card {
+        padding: 24px 20px;
+    }
+
+    .auth-brand h1 {
+        font-size: 23px;
+    }
+}

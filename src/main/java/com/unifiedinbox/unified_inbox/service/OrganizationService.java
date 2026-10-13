@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import com.unifiedinbox.unified_inbox.dto.OrganizationSummary;
+import com.unifiedinbox.unified_inbox.core.dto.OrganizationSummary;
 
 
 import java.util.List;
@@ -147,6 +147,26 @@ public class OrganizationService {
         }
 
         return membership;
+    }
+
+    @Transactional(readOnly = true)
+    public OrganizationEntity getOrganization(Long organizationId) {
+
+        requireMember(organizationId);
+
+        return organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Organization not found."
+                ));
         }
+
+        @Transactional(readOnly = true)
+        public List<OrganizationMemberEntity> getMembers(Long organizationId) {
+
+        requireMember(organizationId);
+
+        return memberRepository.findByOrganizationId(organizationId);
+    }
 
 }

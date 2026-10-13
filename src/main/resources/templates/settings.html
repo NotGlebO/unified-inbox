@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Unified Inbox — Organization Settings</title>
+    <title>Organization Settings — Unified Inbox</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/integrations.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/organizations.css}">
+    <link rel="stylesheet" th:href="@{/css/settings.css}">
 </head>
 <body>
 
@@ -16,10 +17,10 @@
 
     <header class="dashboard-header">
         <div class="dashboard-brand">
-            <div class="brand-icon">✉</div>
+            <div class="dashboard-brand-icon">✉</div>
             <div>
                 <h1>Unified Inbox</h1>
-                <p>Organization Settings</p>
+                <p>All your messages in one place</p>
             </div>
         </div>
 
@@ -30,49 +31,23 @@
         </form>
     </header>
 
-    <section class="dashboard-content">
+    <section class="settings-content">
 
         <a class="back-link" th:href="@{/organizations}">
             ← Back to Organizations
         </a>
 
-        <div class="dashboard-title">
-            <h2 th:text="${organization.name}">Organization Name</h2>
-            <p>Manage your organization and its members.</p>
-        </div>
-
-        <p class="message success"
-           th:if="${success}"
-           th:text="${success}">
-        </p>
-
-        <p class="message error"
-           th:if="${error}"
-           th:text="${error}">
-        </p>
-
-        <div class="create-organization" th:if="${isOwner}">
-            <h3>Add Member</h3>
+        <div class="settings-title">
+            <h2 th:text="${organization.name}">
+                Organization Name
+            </h2>
 
             <p class="settings-description">
-                Add an existing Unified Inbox user by username.
+                Manage your organization and its members.
             </p>
-
-            <form th:action="@{/organizations/{id}/members(id=${organization.id})}"
-                  method="post">
-
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Enter username"
-                    required
-                >
-
-                <button type="submit">Add Member</button>
-            </form>
         </div>
 
-        <div class="members-panel">
+        <div class="settings-panel">
             <h3>Organization Members</h3>
 
             <div class="member-item"
@@ -80,293 +55,25 @@
 
                 <div class="member-details">
                     <div class="member-avatar"
-                         th:text="${#strings.toUpperCase(#strings.substring(member.user.username, 0, 1))}">
+                         th:text="${#strings.substring(member.user.username, 0, 1).toUpperCase()}">
                         U
                     </div>
 
-                    <span th:text="${member.user.username}">
+                    <span class="member-name"
+                          th:text="${member.user.username}">
                         Username
                     </span>
                 </div>
 
-                <span class="organization-role"
+                <span class="member-role"
                       th:text="${member.role}">
                     MEMBER
                 </span>
 
             </div>
-
-            <p class="settings-description"
-               th:if="${#lists.isEmpty(members)}">
-                No members found.
-            </p>
-        </div>
-
-        
-       
-    <section class="integrations-section">
-
-        <div class="integrations-heading">
-            <div>
-                <h3>Integrations</h3>
-                <p>Connect and manage your messaging channels.</p>
-            </div>
-        </div>
-
-        <div class="integration-card">
-
-            <div class="integration-card-header">
-                <div class="integration-icon">
-                    <img th:src="@{/icons/telegram.svg}"
-                        alt="Telegram"
-                        class="telegram-icon">
-                </div>
-
-                <div class="integration-info">
-                    <h4>Telegram</h4>
-                    <p>Connect your Telegram bots to Unified Inbox.</p>
-                </div>
-            </div>
-
-            <div class="connected-bots">
-
-                <div class="connected-bot"
-                    th:each="integration : ${integrations}"
-                    th:if="${integration.type.name() == 'TELEGRAM'}">
-
-                    <div class="bot-details">
-                        <div class="bot-avatar">
-                            <img th:src="@{/icons/telegram.svg}"
-                                alt="Telegram"
-                                class="telegram-icon">
-                        </div>
-
-                        <div>
-                            <strong th:text="${'@' + integration.displayName}">
-                                @support_bot
-                            </strong>
-                            <small>Telegram Bot</small>
-                        </div>
-                    </div>
-
-                    
-                    <div class="bot-actions">
-
-                        <span class="bot-status"
-                            th:classappend="${!integration.enabled} ? ' bot-status-disabled' : ''"
-                            th:text="${integration.enabled ? 'Connected' : 'Disconnected'}">
-                            Connected
-                        </span>
-
-                        <form th:if="${isOwner and integration.enabled}"
-                            th:action="@{/organizations/{orgId}/integrations/{integrationId}/disconnect(
-                                orgId=${organization.id},
-                                integrationId=${integration.id}
-                            )}"
-                            method="post"
-                            onsubmit="return confirm('Disconnect this Telegram bot?');">
-
-                            <button type="submit" class="disconnect-bot-btn">
-                                Disconnect
-                            </button>
-
-                        </form>
-
-                    </div>
-
-                </div>
-
-                <p class="empty-integrations"
-                th:if="${#lists.isEmpty(integrations.?[type.name() == 'TELEGRAM'])}">
-                    No Telegram bots connected yet.
-                </p>
-
-            </div>
-
-            <button
-                th:if="${isOwner}"
-                type="button"
-                class="connect-telegram-btn"
-                onclick="openTelegramModal()">
-                + Connect Telegram Bot
-            </button>
-
-        </div>
-        <div class="integration-card">
-
-            <div class="integration-card-header">
-
-                <div class="integration-info">
-                    <h4>Gmail</h4>
-                    <p>
-                        Connect your Google account to read
-                        and send emails from Unified Inbox.
-                    </p>
-                </div>
-
-            </div>
-
-            <div class="connected-bots">
-                <div class="connected-bot"
-                     th:each="integration : ${integrations}"
-                     th:if="${integration.type.name() == 'GMAIL'}">
-
-                    <div class="bot-details">
-                        <div class="bot-avatar">
-                            <img th:src="@{/icons/gmail.svg}"
-                                 alt="Gmail"
-                                 class="telegram-icon">
-                        </div>
-
-                        <div>
-                            <strong th:text="${integration.displayName}">example@gmail.com</strong>
-                            <small>Gmail Account</small>
-                        </div>
-                    </div>
-
-                    <div class="bot-actions">
-
-                        <span class="bot-status"
-                            th:text="${integration.enabled ? 'Connected' : 'Disconnected'}">
-                            Connected
-                        </span>
-
-                        <form th:if="${isOwner and integration.enabled}"
-                            th:action="@{/organizations/{orgId}/integrations/{integrationId}/disconnect(
-                                orgId=${organization.id},
-                                integrationId=${integration.id}
-                            )}"
-                            method="post"
-                            onsubmit="return confirm('Disconnect this Gmail account?');">
-
-                            <button type="submit" class="disconnect-bot-btn">
-                                Disconnect
-                            </button>
-
-                        </form>
-
-                    </div>
-                </div>
-
-                <p class="empty-integrations"
-                   th:if="${#lists.isEmpty(integrations.?[type.name() == 'GMAIL'])}">
-                    No Gmail accounts connected yet.
-                </p>
-            </div>
-
-            <a th:if="${isOwner}"
-            th:href="@{/organizations/{id}/gmail/connect(id=${organization.id})}"
-            class="connect-telegram-btn">
-                + Connect Gmail
-            </a>
-
         </div>
 
     </section>
-
-    <div class="telegram-modal-overlay"
-        id="telegramModal">
-
-        <div class="telegram-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="telegramModalTitle">
-
-            <button type="button"
-                    class="modal-close"
-                    onclick="closeTelegramModal()"
-                    aria-label="Close">
-                &times;
-            </button>
-
-            <div class="modal-telegram-icon">
-                <img th:src="@{/icons/telegram.svg}"
-                    alt="Telegram"
-                    class="telegram-icon">
-            </div>
-
-            <h2 id="telegramModalTitle">Connect Telegram</h2>
-
-            <p class="modal-subtitle">
-                Link your Telegram bot to start managing
-                conversations in Unified Inbox.
-            </p>
-
-            <div class="telegram-steps">
-
-                <div class="telegram-step">
-                    <span class="step-number">1</span>
-                    <div>
-                        <strong>Open BotFather</strong>
-                        <p>
-                            Open
-                            <a href="https://t.me/BotFather"
-                            target="_blank"
-                            rel="noopener noreferrer">
-                                @BotFather
-                            </a>
-                            in Telegram.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="telegram-step">
-                    <span class="step-number">2</span>
-                    <div>
-                        <strong>Create a bot</strong>
-                        <p>
-                            Send /newbot and follow the instructions
-                            to generate your bot token.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="telegram-step">
-                    <span class="step-number">3</span>
-                    <div>
-                        <strong>Paste your token</strong>
-                        <p>
-                            Enter the token below to connect your bot.
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-
-            <form
-                th:action="@{/organizations/{id}/integrations/telegram(id=${organization.id})}"
-                method="post"
-                autocomplete="off">
-
-                <label for="telegramToken">Bot Token</label>
-
-                <input
-                    id="telegramToken"
-                    type="password"
-                    name="token"
-                    placeholder="123456789:AA..."
-                    autocomplete="off"
-                    required>
-
-                <p class="token-hint">
-                    Your token will be encrypted before storage.
-                </p>
-
-                <button type="submit" class="modal-connect-btn">
-                    Connect Bot
-                </button>
-
-            </form>
-
-        </div>
-
-    </div>
-
-    <script th:src="@{/js/telegram-modal.js}" defer></script>
-
-
-    </section>
-
 </main>
 
 </body>

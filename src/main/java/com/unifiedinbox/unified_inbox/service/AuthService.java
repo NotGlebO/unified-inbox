@@ -27,19 +27,19 @@ public class AuthService {
         if (username == null ||
                 !username.matches("[a-zA-Z0-9_]{3,30}")) {
             throw new IllegalArgumentException(
-                    "Логин должен содержать от 3 до 30 символов: латинские буквы, цифры или _"
+                    "Username must be between 3 and 30 characters and contain only Latin letters, numbers, or underscores."
             );
         }
 
         if (password == null || password.length() < 8) {
             throw new IllegalArgumentException(
-                    "Пароль должен содержать минимум 8 символов"
+                    "Password must be at least 8 characters long.\""
             );
         }
 
         if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException(
-                    "Этот логин уже занят"
+                    "This username is already taken."
             );
         }
 

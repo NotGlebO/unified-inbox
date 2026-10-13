@@ -1,4 +1,3 @@
-
 package com.unifiedinbox.unified_inbox.repository;
 
 import com.unifiedinbox.unified_inbox.entity.ConversationEntity;
@@ -10,17 +9,14 @@ import java.util.Optional;
 public interface ConversationRepository
         extends JpaRepository<ConversationEntity, Long> {
 
-    List<ConversationEntity> findByOrganizationId(
-            Long organizationId
+    List<ConversationEntity>
+    findByIntegrationIdOrderByUpdatedAtDesc(
+            Long integrationId
     );
 
-    Optional<ConversationEntity> findByIntegrationIdAndExternalChatId(
+    Optional<ConversationEntity>
+    findByIntegrationIdAndExternalChatId(
             Long integrationId,
             String externalChatId
-    );
-
-    Optional<ConversationEntity> findByIdAndOrganizationId(
-            Long conversationId,
-            Long organizationId
     );
 }

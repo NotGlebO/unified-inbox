@@ -1,0 +1,91 @@
+
+.settings-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 45px 24px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+.settings-title {
+    margin-bottom: 30px;
+}
+
+.settings-title h2 {
+    margin: 0 0 10px;
+    font-size: 28px;
+}
+
+.settings-description {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.settings-panel {
+    padding: 25px;
+    margin-bottom: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.settings-panel h3 {
+    margin: 0 0 20px;
+    font-size: 18px;
+}
+
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.member-avatar {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background: #315b94;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+}
+
+.member-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.member-role {
+    padding: 6px 10px;
+    background: #1e3a5f;
+    border-radius: 6px;
+    color: #60a5fa;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .settings-content {
+        padding: 30px 16px;
+    }
+}
