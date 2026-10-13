@@ -1,6 +1,8 @@
 
 package com.unifiedinbox.unified_inbox.service;
 
+import com.unifiedinbox.unified_inbox.core.adapter.AdapterRegistry;
+import com.unifiedinbox.unified_inbox.core.adapter.MessagingAdapter;
 import com.unifiedinbox.unified_inbox.core.dto.ConversationSummary;
 import com.unifiedinbox.unified_inbox.entity.IntegrationEntity;
 import com.unifiedinbox.unified_inbox.repository.ConversationRepository;
@@ -15,13 +17,16 @@ public class ConversationService {
 
     private final ConversationRepository conversationRepository;
     private final OrganizationService organizationService;
+    private final AdapterRegistry adapterRegistry;
 
     public ConversationService(
             ConversationRepository conversationRepository,
-            OrganizationService organizationService
+            OrganizationService organizationService,
+            AdapterRegistry adapterRegistry
     ) {
         this.conversationRepository = conversationRepository;
         this.organizationService = organizationService;
+        this.adapterRegistry = adapterRegistry;
     }
 
     @Transactional(readOnly = true)
@@ -29,10 +34,8 @@ public class ConversationService {
             Long organizationId
     ) {
 
-        // Check whether the current user belongs to this organization
         organizationService.requireMember(organizationId);
 
-        // Load conversations belonging to the organization
         return conversationRepository
                 .findAllByOrganizationId(organizationId)
                 .stream()
@@ -41,10 +44,17 @@ public class ConversationService {
                     IntegrationEntity integration =
                             conversation.getIntegration();
 
+                    MessagingAdapter adapter =
+                            adapterRegistry.getAdapter(
+                                    integration.getType()
+                            );
+
                     return new ConversationSummary(
                             conversation.getId(),
                             integration.getId(),
-                            integration.getType(),
+                            adapter.getType(),
+                            adapter.getDisplayName(),
+                            adapter.getIconPath(),
                             integration.getDisplayName(),
                             conversation.getCustomerName(),
                             conversation.getUpdatedAt()
@@ -52,6 +62,4 @@ public class ConversationService {
                 })
                 .toList();
     }
-
-    
 }
