@@ -7,4 +7,6 @@ public interface IntegrationProvider {
     String getDisplayName();
 
     String getIconPath();
+
+    IntegrationSetup getSetup();
 }
