@@ -78,19 +78,30 @@
                     Organization Name
                 </h3>
 
+         
                 <div class="organization-actions">
 
                     <span class="organization-role"
-                          th:text="${organization.role}">
+                        th:text="${organization.role}">
                         OWNER
                     </span>
 
-                    <a class="settings-link"
-                       th:href="@{/organizations/{id}/settings(id=${organization.id})}">
-                        Settings
-                    </a>
+                    <div class="organization-links">
+
+                        <a class="settings-link"
+                        th:href="@{/organizations/{id}/settings(id=${organization.id})}">
+                            Settings
+                        </a>
+
+                        <a class="inbox-link"
+                        th:href="@{/organizations/{id}/conversations(id=${organization.id})}">
+                            Open Inbox
+                        </a>
+
+                    </div>
 
                 </div>
+
             </div>
         </div>
 

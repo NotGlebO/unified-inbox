@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${organization.name} + ' — Inbox'">
+        Inbox — Unified Inbox
+    </title>
+
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/conversations.css}">
+
+    <script th:src="@{/js/conversations.js}" defer></script>
+</head>
+
+<body>
+
+<main class="inbox-app"
+      id="inboxApp"
+      th:attr="data-organization-id=${organization.id}">
+
+    <!-- Top navigation -->
+    <header class="inbox-header">
+
+        <div class="inbox-brand">
+            <a class="brand-logo"
+               th:href="@{/organizations}"
+               aria-label="Back to organizations">
+                ✉
+            </a>
+
+            <div class="brand-info">
+                <strong>Unified Inbox</strong>
+                <span th:text="${organization.name}">
+                    Organization Name
+                </span>
+            </div>
+        </div>
+
+        <nav class="header-actions">
+
+            <a class="header-link"
+               th:href="@{/organizations}">
+                Organizations
+            </a>
+
+            <a class="header-link"
+               th:href="@{/organizations/{id}/settings(id=${organization.id})}">
+                Settings
+            </a>
+
+            <form th:action="@{/logout}" method="post">
+                <button class="header-button" type="submit">
+                    Sign Out
+                </button>
+            </form>
+
+        </nav>
+
+    </header>
+
+    <div class="inbox-layout">
+
+        <!-- Left sidebar -->
+        <aside class="conversation-sidebar">
+
+            <div class="sidebar-top">
+
+                <div class="sidebar-heading">
+                    <div>
+                        <h1>Conversations</h1>
+                        <p>All your connected channels</p>
+                    </div>
+
+                    <span class="conversation-count"
+                          id="conversationCount">
+                        0
+                    </span>
+                </div>
+
+                <label class="search-field">
+                    <span class="search-icon">⌕</span>
+
+                    <input
+                        id="conversationSearch"
+                        type="search"
+                        placeholder="Search conversations..."
+                        autocomplete="off"
+                        aria-label="Search conversations"
+                    >
+                </label>
+
+                <div class="sidebar-filters">
+                    <button type="button"
+                            class="filter-button active"
+                            data-filter="ALL">
+                        All
+                    </button>
+
+                    <button type="button"
+                            class="filter-button"
+                            data-filter="TELEGRAM">
+                        Telegram
+                    </button>
+
+                    <button type="button"
+                            class="filter-button"
+                            data-filter="GMAIL">
+                        Gmail
+                    </button>
+
+                    <button type="button"
+                            class="filter-button"
+                            data-filter="WHATSAPP">
+                        WhatsApp
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- JavaScript inserts conversations here -->
+            <div class="conversation-list"
+                 id="conversationList"
+                 aria-label="Conversation list">
+            </div>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                <span id="connectionStatus">
+                    Loading conversations...
+                </span>
+            </div>
+
+        </aside>
+
+        <!-- Right chat area -->
+        <section class="chat-panel"
+                 aria-label="Chat">
+
+            <!-- Selected conversation header -->
+            <header class="chat-header" id="chatHeader" hidden>
+
+                <div class="chat-contact">
+
+                    <button
+                        type="button"
+                        class="mobile-back"
+                        id="mobileBackButton"
+                        aria-label="Back to conversations">
+                        ←
+                    </button>
+
+                    <div class="contact-avatar"
+                         id="contactAvatar">
+                        U
+                    </div>
+
+                    <div class="contact-details">
+                        <strong id="contactName">
+                            Customer
+                        </strong>
+
+                        <span id="contactPlatform">
+                            Platform
+                        </span>
+                    </div>
+
+                </div>
+
+            </header>
+
+            <!-- Initial empty state -->
+            <div class="chat-placeholder"
+                 id="chatPlaceholder">
+
+                <div class="placeholder-icon">
+                    ✉
+                </div>
+
+                <h2>Your inbox is ready</h2>
+
+                <p>
+                    Select a conversation to view messages.
+                    New conversations will appear here
+                    when your integrations receive messages.
+                </p>
+
+                <span class="placeholder-badge">
+                    Waiting for conversations
+                </span>
+
+            </div>
+
+            <!-- Chat content, hidden until selected -->
+            <div class="chat-content"
+                 id="chatContent"
+                 hidden>
+
+                <div class="message-list"
+                     id="messageList"
+                     role="log"
+                     aria-live="polite">
+                </div>
+
+                <div class="message-composer">
+
+                    <textarea
+                        id="messageInput"
+                        rows="2"
+                        placeholder="Connect a channel to send messages"
+                        disabled
+                    ></textarea>
+
+                    <button
+                        class="send-button"
+                        id="sendButton"
+                        type="button"
+                        disabled>
+                        Send
+                    </button>
+
+                </div>
+
+                <p class="composer-note">
+                    Sending messages is not available yet.
+                </p>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+</body>
+</html>

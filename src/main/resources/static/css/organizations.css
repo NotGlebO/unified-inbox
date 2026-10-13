@@ -176,3 +176,30 @@
         flex-direction: column;
     }
 }
+
+
+
+.organization-links {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.inbox-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 13px;
+    background: var(--blue);
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.inbox-link:hover {
+    background: var(--blue-hover);
+    color: #ffffff;
+    text-decoration: none;
+}

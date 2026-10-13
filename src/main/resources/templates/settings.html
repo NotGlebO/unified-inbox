@@ -36,6 +36,12 @@
         <a class="back-link" th:href="@{/organizations}">
             ← Back to Organizations
         </a>
+        
+        <a class="back-link"
+        th:href="@{/organizations/{id}/conversations(id=${organization.id})}">
+            → Open Inbox
+        </a>
+
 
         <div class="settings-title">
             <h2 th:text="${organization.name}">
