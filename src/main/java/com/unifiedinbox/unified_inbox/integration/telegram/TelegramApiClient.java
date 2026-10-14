@@ -163,6 +163,63 @@ public class TelegramApiClient {
     }
     }
 
+    
+    public String sendMessage(
+            String token,
+            String chatId,
+            String text
+    ) {
+        try {
+            String json = objectMapper.writeValueAsString(
+                    java.util.Map.of(
+                            "chat_id", chatId,
+                            "text", text
+                    )
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(
+                            "https://api.telegram.org/bot"
+                                    + token + "/sendMessage"
+                    ))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            JsonNode root = objectMapper.readTree(response.body());
+
+            if (response.statusCode() != 200
+                    || !root.path("ok").asBoolean(false)) {
+                throw new IllegalStateException(
+                        "Telegram failed to send message: HTTP "
+                                + response.statusCode()
+                );
+            }
+
+            return root.path("result")
+                    .path("message_id")
+                    .asText();
+
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Telegram request was interrupted",
+                    exception
+            );
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException(
+                    "Could not connect to Telegram API",
+                    exception
+            );
+        }
+    }
+
 
     public record TelegramBotInfo(
             Long id,

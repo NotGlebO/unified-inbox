@@ -24,7 +24,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers(
-                    "/api/telegram/webhooks/**"
+                    "/api/webhooks/**"
                 )
             )
             .authorizeHttpRequests(auth -> auth
@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     HttpMethod.POST,
                     "/api/auth/register",
-                    "/api/telegram/webhooks/**"
+                    "/api/webhooks/**"
                 ).permitAll()
 
                 .anyRequest().authenticated()

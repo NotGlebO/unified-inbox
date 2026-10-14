@@ -55,6 +55,7 @@ public class ConversationService {
                             adapter.getType(),
                             adapter.getDisplayName(),
                             adapter.getIconPath(),
+                            adapter.getColor(),
                             integration.getDisplayName(),
                             conversation.getCustomerName(),
                             conversation.getUpdatedAt()

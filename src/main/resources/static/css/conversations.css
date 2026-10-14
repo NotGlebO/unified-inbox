@@ -639,3 +639,17 @@
         padding: 0 12px 10px;
     }
 }
+
+.conversation-platform {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.platform-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}

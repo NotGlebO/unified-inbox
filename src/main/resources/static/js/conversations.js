@@ -259,7 +259,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const platform = document.createElement("div");
         platform.className = "conversation-platform";
-        platform.textContent = getPlatformLabel(conversation);
+
+        // Иконка, путь к которой передал адаптер
+        const icon = document.createElement("img");
+        icon.className = "platform-icon";
+        icon.src = conversation.iconPath;
+        icon.alt = "";
+
+        // Название, которое передал адаптер
+        const label = document.createElement("span");
+        label.textContent = conversation.integrationName;
+
+        // Цвет, который передал адаптер
+        if (/^#[0-9a-fA-F]{6}$/.test(conversation.integrationColor || "")) {
+            label.style.color = conversation.integrationColor;
+        }
+
+        platform.append(icon, label);
 
         info.append(nameRow, platform);
         button.append(avatar, info);
@@ -399,22 +415,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function formatTime(value) {
-
-        if (!value) {
-            return "";
-        }
+        if (!value) return "";
 
         const date = new Date(value);
 
-        if (Number.isNaN(date.getTime())) {
-            return "";
-        }
+        if (Number.isNaN(date.getTime())) return "";
 
-        return date.toLocaleString(undefined, {
+        return date.toLocaleString("en-GB", {
             day: "2-digit",
-            month: "short",
+            month: "2-digit",
+            year: "numeric",
             hour: "2-digit",
-            minute: "2-digit"
+            minute: "2-digit",
+            hour12: false
         });
     }
 

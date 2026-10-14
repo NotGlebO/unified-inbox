@@ -10,6 +10,8 @@ public interface MessagingAdapter {
 
     String getIconPath();
 
+    String getColor();
+
     IntegrationCapabilities getCapabilities();
 
     String sendMessage(

@@ -9,6 +9,7 @@ public record ConversationSummary(
         String integrationType,
         String integrationName,
         String iconPath,
+        String integrationColor,
         String integrationDisplayName,
         String customerName,
         Instant updatedAt
