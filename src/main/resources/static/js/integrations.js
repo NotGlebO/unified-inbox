@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     credentials: "same-origin",
                                     headers: {
                                         "Accept": "application/json",
-                                        [csrfInput.name]: csrfInput.value
+                                        "X-CSRF-TOKEN": csrfInput.value
                                     }
                                 }
                             );

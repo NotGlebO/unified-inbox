@@ -1,3 +1,4 @@
+
 package com.unifiedinbox.unified_inbox.config;
 
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,11 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers(
+                    "/api/telegram/webhook/**"
+                )
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
@@ -36,12 +42,12 @@ public class SecurityConfig {
 
                 .requestMatchers(
                     HttpMethod.POST,
-                    "/api/auth/register"
+                    "/api/auth/register",
+                    "/api/telegram/webhook/**"
                 ).permitAll()
 
                 .anyRequest().authenticated()
             )
-
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
@@ -49,7 +55,6 @@ public class SecurityConfig {
                 .failureUrl("/login?error")
                 .permitAll()
             )
-
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
