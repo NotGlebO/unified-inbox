@@ -7,6 +7,7 @@ public record MessageDetails(
         String senderName,
         String text,
         Instant sentAt,
-        MessageDirection direction
+        MessageDirection direction,
+        MessageStatus status
 ) {
 }

@@ -137,7 +137,8 @@ public class MessageService {
                         message.getSenderName(),
                         message.getText(),
                         message.getSentAt(),
-                        message.getDirection()
+                        message.getDirection(),
+                        message.getStatus()
                 ))
                 .toList();
     }

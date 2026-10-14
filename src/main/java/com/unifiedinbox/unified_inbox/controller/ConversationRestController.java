@@ -66,7 +66,8 @@ public class ConversationRestController {
                 message.getSenderName(),
                 message.getText(),
                 message.getSentAt(),
-                message.getDirection()
+                message.getDirection(),
+                message.getStatus()
         );
 
         return ResponseEntity

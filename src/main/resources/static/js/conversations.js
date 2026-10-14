@@ -38,6 +38,7 @@ let isSending = false;
     let selectedConversationId = null;
     let activeFilter = "ALL";
     let messageRequestVersion = 0;
+    let lastMessagesSignature = null;
 
     // -------------------------
     // API
@@ -139,10 +140,12 @@ let isSending = false;
     }
 
 
-    async function loadMessages(conversationId) {
+    async function loadMessages(conversationId, silent = false) {
         const requestVersion = ++messageRequestVersion;
 
-        showMessagesNotice("Loading messages...");
+        if (!silent) {
+            showMessagesNotice("Loading messages...");
+        }
 
         try {
             const messages = await fetchJson(
@@ -159,7 +162,12 @@ let isSending = false;
                 throw new Error("Invalid messages response");
             }
 
-            renderMessages(messages);
+            const messagesSignature = JSON.stringify(messages);
+
+            if (messagesSignature !== lastMessagesSignature) {
+                lastMessagesSignature = messagesSignature;
+                renderMessages(messages);
+            }
 
         } catch (error) {
             if (requestVersion !== messageRequestVersion ||
@@ -392,13 +400,13 @@ let isSending = false;
             return;
         }
 
-        selectedConversationId = conversation.id;
 
         messageInput.value = "";
         composerNote.textContent =
         "Press Enter to send, Shift + Enter for a new line.";
 
         selectedConversationId = conversation.id;
+        lastMessagesSignature = null;
 
         contactName.textContent =
             conversation.customerName || "Unknown customer";
@@ -420,6 +428,12 @@ let isSending = false;
     }
 
     function renderMessages(messages) {
+        const wasNearBottom =
+            messageList.scrollHeight -
+            messageList.scrollTop -
+            messageList.clientHeight < 100;
+
+        const previousScrollTop = messageList.scrollTop;
 
         messageList.replaceChildren();
 
@@ -449,11 +463,41 @@ let isSending = false;
             time.className = "message-time";
             time.textContent = formatTime(message.sentAt);
 
+            
             bubble.append(sender, text, time);
+
+            if (message.direction === "OUTGOING") {
+
+                const statusLabels = {
+                    PENDING: "◷ Queued",
+                    SENDING: "◷ Sending...",
+                    SENT: "✓ Sent",
+                    RETRY: "↻ Retrying",
+                    FAILED: "✕ Failed",
+                    UNKNOWN: "? Delivery uncertain"
+                };
+
+                const status = document.createElement("div");
+                status.className = "message-status";
+
+                const statusCode = message.status || "UNKNOWN";
+
+                status.textContent =
+                    statusLabels[statusCode] || "Unknown status";
+
+                status.dataset.status = statusCode;
+
+                bubble.appendChild(status);
+            }
+
             messageList.appendChild(bubble);
         });
 
-        messageList.scrollTop = messageList.scrollHeight;
+        if (wasNearBottom) {
+            messageList.scrollTop = messageList.scrollHeight;
+        } else {
+            messageList.scrollTop = previousScrollTop;
+        }
     }
 
     function showMessagesNotice(text) {
@@ -473,6 +517,7 @@ let isSending = false;
         }
         ++messageRequestVersion;
         selectedConversationId = null;
+        lastMessagesSignature = null;
 
         layout.classList.remove("chat-open");
 
@@ -561,5 +606,13 @@ let isSending = false;
             sendMessage();
         }
     });
-
+    setInterval(() => {
+        if (
+            selectedConversationId !== null &&
+            !isSending &&
+            !document.hidden
+        ) {
+            loadMessages(selectedConversationId, true);
+        }
+    }, 3000);
 });

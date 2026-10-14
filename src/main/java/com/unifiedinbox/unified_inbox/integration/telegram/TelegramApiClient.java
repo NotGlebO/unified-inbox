@@ -291,7 +291,14 @@ public class TelegramApiClient {
                 );
             }
 
-            return messageId.asString();
+            if (!messageId.isIntegralNumber()) {
+				throw new MessageSendException(
+						FailureType.UNKNOWN,
+						"Telegram returned an invalid message ID."
+				);
+				}
+
+			return messageId.asText();
 
         } catch (MessageSendException exception) {
             throw exception;

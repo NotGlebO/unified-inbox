@@ -653,3 +653,28 @@
     height: 18px;
     object-fit: contain;
 }
+
+
+/* Outgoing message delivery status */
+
+.message-status {
+    margin-top: 5px;
+    text-align: right;
+    font-size: 10px;
+    color: #cbd5e1;
+}
+
+.message-status[data-status="SENT"] {
+    color: #86efac;
+}
+
+.message-status[data-status="PENDING"],
+.message-status[data-status="SENDING"],
+.message-status[data-status="RETRY"] {
+    color: #fde68a;
+}
+
+.message-status[data-status="FAILED"],
+.message-status[data-status="UNKNOWN"] {
+    color: #fca5a5;
+}
