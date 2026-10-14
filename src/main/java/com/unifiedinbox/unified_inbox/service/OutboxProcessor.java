@@ -3,57 +3,50 @@ package com.unifiedinbox.unified_inbox.service;
 
 import com.unifiedinbox.unified_inbox.core.adapter.AdapterRegistry;
 import com.unifiedinbox.unified_inbox.core.adapter.MessageSendException;
-import com.unifiedinbox.unified_inbox.entity.OutboxEntity;
-import com.unifiedinbox.unified_inbox.entity.MessageEntity;
-import com.unifiedinbox.unified_inbox.entity.ConversationEntity;
-import com.unifiedinbox.unified_inbox.entity.IntegrationEntity;
-import com.unifiedinbox.unified_inbox.repository.OutboxRepository;
-
+import com.unifiedinbox.unified_inbox.core.dto.OutgoingMessageData;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 public class OutboxProcessor {
 
-    private final OutboxRepository outboxRepository;
+    private final OutboxDataService dataService;
     private final AdapterRegistry adapterRegistry;
     private final OutboxCompletionService completionService;
 
     public OutboxProcessor(
-            OutboxRepository outboxRepository,
+            OutboxDataService dataService,
             AdapterRegistry adapterRegistry,
             OutboxCompletionService completionService
     ) {
-        this.outboxRepository = outboxRepository;
+        this.dataService = dataService;
         this.adapterRegistry = adapterRegistry;
         this.completionService = completionService;
     }
 
     public void process(Long outboxId) {
 
-        OutboxEntity outbox = outboxRepository
-                .findById(outboxId)
-                .orElseThrow();
+        OutgoingMessageData data =
+                dataService.getMessageData(outboxId);
 
-        MessageEntity message = outbox.getMessage();
-        ConversationEntity conversation = message.getConversation();
-        IntegrationEntity integration = conversation.getIntegration();
-
-        if (!integration.isEnabled()) {
-            throw new IllegalStateException(
+        if (!data.integrationEnabled()) {
+            completionService.markFailed(
+                    outboxId,
                     "Integration is disabled."
             );
+            return;
         }
 
         String externalMessageId;
 
         try {
             externalMessageId = adapterRegistry
-                    .getAdapter(integration.getType())
+                    .getAdapter(data.integrationType())
                     .sendMessage(
-                            integration.getId(),
-                            conversation.getExternalChatId(),
-                            message.getText()
+                            data.integrationId(),
+                            data.externalChatId(),
+                            data.text()
                     );
 
         } catch (MessageSendException exception) {
@@ -65,20 +58,18 @@ public class OutboxProcessor {
                                 exception.getMessage()
                         );
 
-                
-                        case PERMANENT ->
-                                completionService.markFailed(
-                                        outboxId,
-                                        exception.getMessage()
-                                );
+                case PERMANENT ->
+                        completionService.markFailed(
+                                outboxId,
+                                exception.getMessage()
+                        );
 
-                        case RETRYABLE ->
-                                completionService.markRetry(
-                                        outboxId,
-                                        exception.getMessage(),
-                                        java.time.Instant.now().plusSeconds(30)
-                                );
-
+                case RETRYABLE ->
+                        completionService.markRetry(
+                                outboxId,
+                                exception.getMessage(),
+                                exception.getRetryAfterSeconds()
+                        );
             }
 
             return;

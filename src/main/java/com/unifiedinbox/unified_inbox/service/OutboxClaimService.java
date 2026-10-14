@@ -36,8 +36,9 @@ public class OutboxClaimService {
 
         MessageEntity message = outbox.getMessage();
 
+        outbox.claim();
         message.setStatus(MessageStatus.SENDING);
 
         return Optional.of(outbox.getId());
-    }
+            }
 }

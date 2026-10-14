@@ -85,12 +85,16 @@ public class OutboxCompletionService {
         message.setStatus(MessageStatus.FAILED);
     }
 
+
+
     @Transactional
     public void markRetry(
             Long outboxId,
             String error,
-            Instant nextAttemptAt
+            Long retryAfterSeconds
     ) {
+        final int maxAttempts = 5;
+
         OutboxEntity outbox = outboxRepository
                 .findById(outboxId)
                 .orElseThrow();
@@ -102,6 +106,30 @@ public class OutboxCompletionService {
                     "Message is not in SENDING status."
             );
         }
+
+        int nextAttempt = outbox.getAttempts() + 1;
+
+        if (nextAttempt >= maxAttempts) {
+            outbox.recordFailure(
+                    "Maximum attempts reached: " + error
+            );
+            message.setStatus(MessageStatus.FAILED);
+            return;
+        }
+
+        long backoffSeconds = 30L * (1L << (nextAttempt - 1));
+
+        long delaySeconds = backoffSeconds;
+
+        if (retryAfterSeconds != null && retryAfterSeconds > 0) {
+            delaySeconds = Math.max(
+                    backoffSeconds,
+                    retryAfterSeconds
+            );
+        }
+
+        Instant nextAttemptAt =
+                Instant.now().plusSeconds(delaySeconds);
 
         outbox.scheduleRetry(nextAttemptAt, error);
         message.setStatus(MessageStatus.RETRY);

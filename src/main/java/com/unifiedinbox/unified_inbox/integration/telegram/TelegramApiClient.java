@@ -224,12 +224,38 @@ public class TelegramApiClient {
 
         int status = response.statusCode();
 
+        
         if (status == 429) {
-            throw new MessageSendException(
-                    FailureType.RETRYABLE,
-                    "Telegram rate limit exceeded."
-            );
+
+        Long retryAfterSeconds = null;
+
+        try {
+                JsonNode root = objectMapper.readTree(response.body());
+
+                JsonNode retryAfter = root
+                        .path("parameters")
+                        .path("retry_after");
+
+                if (!retryAfter.isMissingNode() && !retryAfter.isNull()) {
+                long seconds = retryAfter.asLong();
+
+                if (seconds > 0) {
+                        retryAfterSeconds = seconds;
+                }
+                }
+
+        } catch (Exception exception) {
+                // The response may not contain valid JSON.
+                // We still know that HTTP 429 is retryable.
         }
+
+        throw new MessageSendException(
+                FailureType.RETRYABLE,
+                "Telegram rate limit exceeded.",
+                retryAfterSeconds
+        );
+        }
+
 
         if (status == 400 || status == 401
                 || status == 403 || status == 404) {

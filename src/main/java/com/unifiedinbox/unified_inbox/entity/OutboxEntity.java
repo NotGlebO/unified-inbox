@@ -28,6 +28,9 @@ public class OutboxEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "claimed_at")
+    private Instant claimedAt;
+
     protected OutboxEntity() {
     }
 
@@ -79,5 +82,19 @@ public class OutboxEntity {
         this.attempts++;
         this.lastError = error;
     }
+
+    
+    public Instant getClaimedAt() {
+        return claimedAt;
+    }
+
+    public void claim() {
+        this.claimedAt = Instant.now();
+    }
+
+    public void clearClaim() {
+        this.claimedAt = null;
+    }
+
 
 }
