@@ -10,6 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.unifiedinbox.unified_inbox.core.dto.SendMessageRequest;
+import com.unifiedinbox.unified_inbox.entity.MessageEntity;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -42,4 +49,29 @@ public class ConversationRestController {
     ) {
         return messageService.getMessages(conversationId);
     }
+
+    
+    @PostMapping("/conversations/{conversationId}/messages")
+    public ResponseEntity<MessageDetails> sendMessage(
+            @PathVariable Long conversationId,
+            @RequestBody SendMessageRequest request
+    ) {
+        MessageEntity message = messageService.sendMessage(
+                conversationId,
+                request.text()
+        );
+
+        MessageDetails response = new MessageDetails(
+                message.getId(),
+                message.getSenderName(),
+                message.getText(),
+                message.getSentAt(),
+                message.getDirection()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
 }

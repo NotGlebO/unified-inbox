@@ -22,6 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const messageList = document.getElementById("messageList");
     const mobileBackButton = document.getElementById("mobileBackButton");
+    const messageInput = document.getElementById("messageInput");
+    const sendButton = document.getElementById("sendButton");
+    const composerNote = document.getElementById("composerNote");
+
+    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+let isSending = false;
 
     // Current application state
     const organizationId = app.dataset.organizationId;
@@ -166,6 +174,72 @@ document.addEventListener("DOMContentLoaded", () => {
             );
         }
     }
+
+    
+    async function sendMessage() {
+
+        const conversationId = selectedConversationId;
+        const text = messageInput.value.trim();
+
+        if (!conversationId || !text || isSending) {
+            return;
+        }
+
+        isSending = true;
+        sendButton.disabled = true;
+        messageInput.disabled = true;
+        composerNote.textContent = "Sending...";
+
+        try {
+            const response = await fetch(
+                `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ text })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to send message: HTTP ${response.status}`
+                );
+            }
+
+            const contentType = response.headers.get("content-type") || "";
+
+            if (!contentType.includes("application/json")) {
+                throw new Error("Unexpected server response.");
+            }
+
+            await response.json();
+
+            messageInput.value = "";
+            composerNote.textContent = "Message queued for delivery.";
+
+            if (selectedConversationId === conversationId) {
+                await loadMessages(conversationId);
+            }
+
+        } catch (error) {
+            console.error("Message sending failed:", error);
+
+            composerNote.textContent =
+                "Unable to queue message. Check the connection and try again.";
+
+        } finally {
+            isSending = false;
+            sendButton.disabled = false;
+            messageInput.disabled = false;
+            messageInput.focus();
+        }
+    }
+
 
     // -------------------------
     // Conversations
@@ -314,6 +388,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function selectConversation(conversation) {
 
+        if (isSending) {
+            return;
+        }
+
+        selectedConversationId = conversation.id;
+
+        messageInput.value = "";
+        composerNote.textContent =
+        "Press Enter to send, Shift + Enter for a new line.";
+
         selectedConversationId = conversation.id;
 
         contactName.textContent =
@@ -384,6 +468,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function closeChat() {
+        if (isSending) {
+            return;
+        }
         ++messageRequestVersion;
         selectedConversationId = null;
 
@@ -465,5 +552,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initial API request
     loadConversations();
+
+    sendButton.addEventListener("click", sendMessage);
+
+    messageInput.addEventListener("keydown", event => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
 
 });
