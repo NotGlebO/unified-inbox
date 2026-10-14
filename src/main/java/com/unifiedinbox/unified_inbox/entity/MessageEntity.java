@@ -2,6 +2,7 @@ package com.unifiedinbox.unified_inbox.entity;
 
 import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
 import jakarta.persistence.*;
+import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
 
 import java.time.Instant;
 
@@ -14,6 +15,9 @@ import java.time.Instant;
     )
 )
 public class MessageEntity {
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private MessageStatus status = MessageStatus.RECEIVED;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -84,5 +88,13 @@ public class MessageEntity {
 
     public MessageDirection getDirection() {
         return direction;
+    }
+
+    public MessageStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(MessageStatus status) {
+        this.status = status;
     }
 }
