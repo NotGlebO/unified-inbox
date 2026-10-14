@@ -71,6 +71,7 @@ public class OutboxEntity {
         this.attempts++;
         this.nextAttemptAt = nextAttemptAt;
         this.lastError = error;
+        this.claimedAt = null;
     }
 
     public void recordFailure(String error) {

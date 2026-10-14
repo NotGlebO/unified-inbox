@@ -65,15 +65,22 @@ public class OutboxProcessor {
                         );
 
                 case RETRYABLE ->
-                        completionService.markRetry(
-                                outboxId,
-                                exception.getMessage(),
-                                exception.getRetryAfterSeconds()
-                        );
+                completionService.markRetry(
+                        outboxId,
+                        exception.getMessage(),
+                        exception.getRetryAfterSeconds()
+                );
             }
 
             return;
-        }
+        } catch (RuntimeException exception) {
+        completionService.markUnknown(
+                outboxId,
+                "Unexpected error during message sending: "
+                        + exception.getClass().getSimpleName()
+        );
+            return;
+}
 
         completionService.markSent(
                 outboxId,

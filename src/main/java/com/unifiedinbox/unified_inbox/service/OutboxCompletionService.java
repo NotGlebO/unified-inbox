@@ -127,6 +127,7 @@ public class OutboxCompletionService {
                     retryAfterSeconds
             );
         }
+        delaySeconds = Math.min(delaySeconds, 86_400L);
 
         Instant nextAttemptAt =
                 Instant.now().plusSeconds(delaySeconds);
