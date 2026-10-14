@@ -9,30 +9,37 @@ import com.unifiedinbox.unified_inbox.service.OrganizationService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
 @Service
 public class TelegramIntegrationService {
 
+    private final String publicUrl;
     private final TelegramApiClient telegramApiClient;
     private final TelegramCredentialsRepository credentialsRepository;
     private final IntegrationRepository integrationRepository;
     private final OrganizationService organizationService;
     private final EncryptionService encryptionService;
+    private final TelegramWebhookSecretService secretService;
 
     public TelegramIntegrationService(
             TelegramApiClient telegramApiClient,
             TelegramCredentialsRepository credentialsRepository,
             IntegrationRepository integrationRepository,
             OrganizationService organizationService,
-            EncryptionService encryptionService
+            EncryptionService encryptionService,
+            TelegramWebhookSecretService secretService,
+            @Value("${app.public-url}") String publicUrl
     ) {
         this.telegramApiClient = telegramApiClient;
         this.credentialsRepository = credentialsRepository;
         this.integrationRepository = integrationRepository;
         this.organizationService = organizationService;
         this.encryptionService = encryptionService;
+        this.secretService = secretService;
+        this.publicUrl = publicUrl;
     }
 
     @Transactional
@@ -79,16 +86,32 @@ public class TelegramIntegrationService {
         );
 
         integrationRepository.save(integration);
+        
+
+        String webhookSecret = secretService.generate();
+        String webhookSecretHash = secretService.hash(webhookSecret);
 
         TelegramCredentialsEntity credentials =
                 new TelegramCredentialsEntity(
                         integration,
                         bot.id(),
                         bot.username(),
-                        encryptedToken
+                        encryptedToken,
+                        webhookSecretHash
                 );
 
+
         credentialsRepository.save(credentials);
+        
+        String webhookUrl = publicUrl.replaceAll("/+$", "")
+                + "/api/webhooks/telegram";
+
+        telegramApiClient.setWebhook(
+                normalizedToken,
+                webhookUrl,
+                webhookSecret
+        );
+
     }
 
     @Transactional(readOnly = true)

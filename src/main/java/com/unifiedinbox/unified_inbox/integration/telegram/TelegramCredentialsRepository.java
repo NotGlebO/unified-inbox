@@ -12,4 +12,7 @@ public interface TelegramCredentialsRepository
     Optional<TelegramCredentialsEntity> findByIntegrationId(
             Long integrationId
     );
+    Optional<TelegramCredentialsEntity> findByWebhookSecretHash(
+            String webhookSecretHash
+    );
 }

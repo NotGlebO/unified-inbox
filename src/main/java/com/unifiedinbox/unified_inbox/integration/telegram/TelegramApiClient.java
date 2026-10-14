@@ -97,7 +97,72 @@ public class TelegramApiClient {
                     exception
             );
         }
+
+        
     }
+
+
+    public void setWebhook(
+            String token,
+            String webhookUrl,
+            String secret
+    ) {
+    try {
+            String json = objectMapper.writeValueAsString(
+                    java.util.Map.of(
+                            "url", webhookUrl,
+                            "secret_token", secret,
+                            "allowed_updates",
+                            java.util.List.of("message")
+                    )
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(
+                            "https://api.telegram.org/bot"
+                                    + token + "/setWebhook"
+                    ))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            JsonNode result = objectMapper.readTree(
+                    response.body()
+            );
+
+            if (response.statusCode() != 200
+                    || !result.path("ok").asBoolean(false)) {
+
+            throw new IllegalStateException(
+                    "Failed to register Telegram webhook: HTTP "
+                            + response.statusCode()
+            );
+            }
+
+    } catch (InterruptedException exception) {
+
+            Thread.currentThread().interrupt();
+
+            throw new IllegalStateException(
+                    "Telegram request was interrupted",
+                    exception
+            );
+
+    } catch (java.io.IOException exception) {
+
+            throw new IllegalStateException(
+                    "Could not connect to Telegram API",
+                    exception
+            );
+    }
+    }
+
 
     public record TelegramBotInfo(
             Long id,

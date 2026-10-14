@@ -30,6 +30,9 @@ public class TelegramCredentialsEntity {
 
     @Column(name = "encrypted_token", nullable = false, columnDefinition = "TEXT")
     private String encryptedToken;
+    
+    @Column(name = "webhook_secret_hash", length = 64)
+    private String webhookSecretHash;
 
     protected TelegramCredentialsEntity() {
     }
@@ -38,12 +41,14 @@ public class TelegramCredentialsEntity {
             IntegrationEntity integration,
             Long botId,
             String botUsername,
-            String encryptedToken
+            String encryptedToken,
+            String webhookSecretHash
     ) {
         this.integration = integration;
         this.botId = botId;
         this.botUsername = botUsername;
         this.encryptedToken = encryptedToken;
+        this.webhookSecretHash = webhookSecretHash;
     }
 
     public Long getId() {
@@ -64,5 +69,9 @@ public class TelegramCredentialsEntity {
 
     public String getEncryptedToken() {
         return encryptedToken;
+    }
+
+    public String getWebhookSecretHash() {
+        return webhookSecretHash;
     }
 }
