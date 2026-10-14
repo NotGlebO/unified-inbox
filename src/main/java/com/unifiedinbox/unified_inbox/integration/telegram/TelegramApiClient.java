@@ -10,6 +10,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import com.unifiedinbox.unified_inbox.core.adapter.MessageSendException;
+import com.unifiedinbox.unified_inbox.core.adapter.MessageSendException.FailureType;
 
 @Component
 public class TelegramApiClient {
@@ -164,57 +166,113 @@ public class TelegramApiClient {
     }
 
     
+
     public String sendMessage(
             String token,
             String chatId,
             String text
     ) {
+        String json;
+
         try {
-            String json = objectMapper.writeValueAsString(
+            json = objectMapper.writeValueAsString(
                     java.util.Map.of(
                             "chat_id", chatId,
                             "text", text
                     )
             );
+        } catch (Exception exception) {
+            throw new MessageSendException(
+                    FailureType.PERMANENT,
+                    "Could not serialize Telegram message.",
+                    exception
+            );
+        }
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(
-                            "https://api.telegram.org/bot"
-                                    + token + "/sendMessage"
-                    ))
-                    .timeout(Duration.ofSeconds(15))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(
+                        "https://api.telegram.org/bot"
+                                + token + "/sendMessage"
+                ))
+                .timeout(Duration.ofSeconds(15))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
 
-            HttpResponse<String> response = httpClient.send(
+        HttpResponse<String> response;
+
+        try {
+            response = httpClient.send(
                     request,
                     HttpResponse.BodyHandlers.ofString()
             );
-
-            JsonNode root = objectMapper.readTree(response.body());
-
-            if (response.statusCode() != 200
-                    || !root.path("ok").asBoolean(false)) {
-                throw new IllegalStateException(
-                        "Telegram failed to send message: HTTP "
-                                + response.statusCode()
-                );
-            }
-
-            return root.path("result")
-                    .path("message_id")
-                    .asText();
-
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException(
-                    "Telegram request was interrupted",
+
+            throw new MessageSendException(
+                    FailureType.UNKNOWN,
+                    "Telegram request was interrupted.",
                     exception
             );
         } catch (java.io.IOException exception) {
-            throw new IllegalStateException(
-                    "Could not connect to Telegram API",
+            throw new MessageSendException(
+                    FailureType.UNKNOWN,
+                    "Telegram request failed; delivery is uncertain.",
+                    exception
+            );
+        }
+
+        int status = response.statusCode();
+
+        if (status == 429) {
+            throw new MessageSendException(
+                    FailureType.RETRYABLE,
+                    "Telegram rate limit exceeded."
+            );
+        }
+
+        if (status == 400 || status == 401
+                || status == 403 || status == 404) {
+            throw new MessageSendException(
+                    FailureType.PERMANENT,
+                    "Telegram rejected the message: HTTP " + status
+            );
+        }
+
+        if (status != 200) {
+            throw new MessageSendException(
+                    FailureType.UNKNOWN,
+                    "Unexpected Telegram response: HTTP " + status
+            );
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(response.body());
+
+            if (!root.path("ok").asBoolean(false)) {
+                throw new MessageSendException(
+                        FailureType.UNKNOWN,
+                        "Telegram returned an unsuccessful response."
+                );
+            }
+
+            JsonNode messageId = root.path("result").path("message_id");
+
+            if (messageId.isMissingNode() || messageId.isNull()) {
+                throw new MessageSendException(
+                        FailureType.UNKNOWN,
+                        "Telegram response contains no message ID."
+                );
+            }
+
+            return messageId.asString();
+
+        } catch (MessageSendException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new MessageSendException(
+                    FailureType.UNKNOWN,
+                    "Could not parse Telegram response.",
                     exception
             );
         }

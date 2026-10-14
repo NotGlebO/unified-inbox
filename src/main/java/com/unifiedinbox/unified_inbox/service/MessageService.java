@@ -16,11 +16,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.unifiedinbox.unified_inbox.core.dto.MessageDetails;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
+import com.unifiedinbox.unified_inbox.entity.OutboxEntity;
+import com.unifiedinbox.unified_inbox.repository.OutboxRepository;
 
 import java.util.List;
 
 @Service
 public class MessageService {
+    private final OutboxRepository outboxRepository;
     private final OrganizationService organizationService;
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
@@ -32,13 +36,15 @@ public class MessageService {
             ConversationRepository conversationRepository,
             IntegrationRepository integrationRepository,
             OrganizationService organizationService,
-            AdapterRegistry adapterRegistry
+            AdapterRegistry adapterRegistry,
+            OutboxRepository outboxRepository
     ) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
         this.integrationRepository = integrationRepository;
         this.organizationService = organizationService;
         this.adapterRegistry = adapterRegistry;
+        this.outboxRepository = outboxRepository;
     }
 
     @Transactional
@@ -137,11 +143,12 @@ public class MessageService {
     }
 
     
-        @Transactional
-        public MessageEntity sendMessage(
-                Long conversationId,
-                String text
-        ) {
+  
+    @Transactional
+    public MessageEntity sendMessage(
+            Long conversationId,
+            String text
+    ) {
         ConversationEntity conversation = conversationRepository
                 .findById(conversationId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -156,50 +163,46 @@ public class MessageService {
         );
 
         if (!integration.isEnabled()) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "Integration is disabled."
-                );
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Integration is disabled."
+            );
         }
 
         if (text == null || text.isBlank()) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Message cannot be empty."
-                );
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Message cannot be empty."
+            );
         }
 
         String normalizedText = text.trim();
 
         if (normalizedText.length() > 4096) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Message is too long."
-                );
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Message is too long."
+            );
         }
-
-        String externalMessageId = adapterRegistry
-                .getAdapter(integration.getType())
-                .sendMessage(
-                        integration.getId(),
-                        conversation.getExternalChatId(),
-                        normalizedText
-                );
 
         MessageEntity message = new MessageEntity(
                 conversation,
-                externalMessageId,
+                null,
                 "Operator",
                 normalizedText,
                 Instant.now(),
                 MessageDirection.OUTGOING
         );
 
+        message.setStatus(MessageStatus.PENDING);
+
         MessageEntity saved = messageRepository.save(message);
+
+        outboxRepository.save(new OutboxEntity(saved));
 
         conversation.updateLastActivity();
 
         return saved;
-        }
+    }
 
 }

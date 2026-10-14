@@ -97,4 +97,8 @@ public class MessageEntity {
     public void setStatus(MessageStatus status) {
         this.status = status;
     }
+
+    public void setExternalMessageId(String externalMessageId) {
+        this.externalMessageId = externalMessageId;
+    }
 }
