@@ -77,15 +77,15 @@ public class TelegramWebhookHandler implements WebhookHandler {
                 return ResponseEntity.ok().build();
             }
 
-            String chatId = message.path("chat").path("id").asText();
-            String messageId = message.path("message_id").asText();
-            String text = message.path("text").asText();
+            String chatId = message.path("chat").path("id").asString();
+            String messageId = message.path("message_id").asString();
+            String text = message.path("text").asString();
             long timestamp = message.path("date").asLong();
 
             JsonNode from = message.path("from");
 
-            String firstName = from.path("first_name").asText("");
-            String lastName = from.path("last_name").asText("");
+            String firstName = from.path("first_name").asString("");
+            String lastName = from.path("last_name").asString("");
 
             String senderName = (firstName + " " + lastName).trim();
 
