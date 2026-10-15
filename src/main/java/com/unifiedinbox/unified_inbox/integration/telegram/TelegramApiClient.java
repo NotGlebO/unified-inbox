@@ -317,4 +317,114 @@ public class TelegramApiClient {
             String username,
             String first_name
     ) {}
+
+
+    public String getFilePath(String token, String fileId) {
+        try {
+                String url = "https://api.telegram.org/bot"
+                        + token
+                        + "/getFile?file_id="
+                        + java.net.URLEncoder.encode(
+                                fileId,
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .timeout(Duration.ofSeconds(15))
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofString()
+                );
+
+                if (response.statusCode() != 200) {
+                throw new IllegalStateException(
+                        "Telegram getFile failed: HTTP "
+                                + response.statusCode()
+                );
+                }
+
+                JsonNode root = objectMapper.readTree(response.body());
+
+                if (!root.path("ok").asBoolean(false)) {
+                throw new IllegalStateException(
+                        "Telegram could not resolve file"
+                );
+                }
+
+                String filePath = root.path("result")
+                        .path("file_path")
+                        .asString("");
+
+                if (filePath.isBlank()) {
+                throw new IllegalStateException(
+                        "Telegram returned empty file path"
+                );
+                }
+
+                return filePath;
+
+        } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(
+                        "Telegram request interrupted", exception
+                );
+        } catch (java.io.IOException exception) {
+                throw new IllegalStateException(
+                        "Could not get Telegram file path", exception
+                );
+        }
+    }
+
+    public byte[] downloadFile(String token, String filePath) {
+        if (filePath == null
+                || filePath.isBlank()
+                || filePath.startsWith("/")
+                || filePath.contains("..")
+                || filePath.contains("?")
+                || filePath.contains("#")
+                || filePath.contains("\\")) {
+                throw new IllegalArgumentException(
+                        "Invalid Telegram file path"
+                );
+        }
+
+        try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(
+                                "https://api.telegram.org/file/bot"
+                                        + token + "/" + filePath
+                        ))
+                        .timeout(Duration.ofSeconds(60))
+                        .GET()
+                        .build();
+
+                HttpResponse<byte[]> response = httpClient.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofByteArray()
+                );
+
+                if (response.statusCode() != 200) {
+                throw new IllegalStateException(
+                        "Telegram file download failed: HTTP "
+                                + response.statusCode()
+                );
+                }
+
+                return response.body();
+
+        } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(
+                        "Telegram download interrupted", exception
+                );
+        } catch (java.io.IOException exception) {
+                throw new IllegalStateException(
+                        "Could not download Telegram file", exception
+                );
+        }
+    }
 }

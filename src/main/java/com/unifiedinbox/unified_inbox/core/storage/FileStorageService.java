@@ -26,7 +26,7 @@ public class FileStorageService {
             byte[] content,
             String contentType
     ) {
-        String key = "test/" + UUID.randomUUID();
+        String key = "attachments/" + UUID.randomUUID();
 
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucket)

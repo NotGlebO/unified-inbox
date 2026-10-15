@@ -72,14 +72,31 @@ public class TelegramWebhookHandler implements WebhookHandler {
             JsonNode update = objectMapper.readTree(body);
             JsonNode message = update.path("message");
 
-            if (message.isMissingNode()
-                    || !message.path("text").isTextual()) {
+            if (message.isMissingNode() || message.isNull()) {
+                return ResponseEntity.ok().build();
+            }
+
+            boolean hasAttachment =
+                    message.has("photo")
+                    || message.has("video")
+                    || message.has("animation")
+                    || message.has("document")
+                    || message.has("audio")
+                    || message.has("voice")
+                    || message.has("video_note");
+
+            boolean hasText =
+                    message.path("text").isTextual()
+                    || message.path("caption").isTextual();
+
+            if (!hasText && !hasAttachment) {
                 return ResponseEntity.ok().build();
             }
 
             String chatId = message.path("chat").path("id").asString();
             String messageId = message.path("message_id").asString();
-            String text = message.path("text").asString();
+            String text = message.path("text")
+                .asString(message.path("caption").asString(""));
             long timestamp = message.path("date").asLong();
 
             JsonNode from = message.path("from");
