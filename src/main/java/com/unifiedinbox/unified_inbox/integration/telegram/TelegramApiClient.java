@@ -341,10 +341,21 @@ public class TelegramApiClient {
                 );
 
                 if (response.statusCode() != 200) {
-                throw new IllegalStateException(
-                        "Telegram getFile failed: HTTP "
-                                + response.statusCode()
-                );
+                    JsonNode error = objectMapper.readTree(response.body());
+
+                    String description = error.path("description")
+                            .asString("Unknown Telegram error");
+
+                    if (response.statusCode() == 400
+                            && description.toLowerCase().contains("file is too big")) {
+                        throw new TelegramFileTooLargeException();
+                    }
+
+                    throw new IllegalStateException(
+                            "Telegram getFile failed: HTTP "
+                                    + response.statusCode()
+                                    + " - " + description
+                    );
                 }
 
                 JsonNode root = objectMapper.readTree(response.body());

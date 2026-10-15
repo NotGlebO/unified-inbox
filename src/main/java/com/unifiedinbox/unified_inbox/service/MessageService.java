@@ -19,6 +19,12 @@ import org.springframework.web.server.ResponseStatusException;
 import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
 import com.unifiedinbox.unified_inbox.entity.OutboxEntity;
 import com.unifiedinbox.unified_inbox.repository.OutboxRepository;
+import com.unifiedinbox.unified_inbox.core.dto.AttachmentDetails;
+import com.unifiedinbox.unified_inbox.repository.MessageAttachmentRepository;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -30,6 +36,7 @@ public class MessageService {
     private final ConversationRepository conversationRepository;
     private final IntegrationRepository integrationRepository;
     private final AdapterRegistry adapterRegistry;
+    private final MessageAttachmentRepository attachmentRepository;
 
     public MessageService(
             MessageRepository messageRepository,
@@ -37,7 +44,8 @@ public class MessageService {
             IntegrationRepository integrationRepository,
             OrganizationService organizationService,
             AdapterRegistry adapterRegistry,
-            OutboxRepository outboxRepository
+            OutboxRepository outboxRepository,
+            MessageAttachmentRepository attachmentRepository
     ) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
@@ -45,6 +53,7 @@ public class MessageService {
         this.organizationService = organizationService;
         this.adapterRegistry = adapterRegistry;
         this.outboxRepository = outboxRepository;
+        this.attachmentRepository = attachmentRepository;
     }
 
     @Transactional
@@ -129,18 +138,58 @@ public class MessageService {
         organizationService.requireMember(organizationId);
 
         // 4. Загружаем сообщения и преобразуем их в DTO
-        return messageRepository
-                .findByConversationIdOrderBySentAtAscIdAsc(conversationId)
-                .stream()
-                .map(message -> new MessageDetails(
-                        message.getId(),
-                        message.getSenderName(),
-                        message.getText(),
-                        message.getSentAt(),
-                        message.getDirection(),
-                        message.getStatus()
-                ))
-                .toList();
+    // 4. Загружаем сообщения
+List<MessageEntity> messages = messageRepository
+        .findByConversationIdOrderBySentAtAscIdAsc(conversationId);
+
+// 5. Загружаем вложения для всех сообщений одним запросом
+List<Long> messageIds = messages.stream()
+        .map(MessageEntity::getId)
+        .toList();
+
+Map<Long, List<AttachmentDetails>> attachmentsByMessage =
+        new HashMap<>();
+
+if (!messageIds.isEmpty()) {
+    attachmentRepository.findByMessageIdIn(messageIds)
+            .forEach(attachment -> {
+
+                Long messageId = attachment.getMessage().getId();
+
+                AttachmentDetails details = new AttachmentDetails(
+                        attachment.getId(),
+                        attachment.getFileName(),
+                        attachment.getContentType(),
+                        attachment.getFileSize(),
+                        "/api/attachments/"
+                                + attachment.getId()
+                                + "/content"
+                );
+
+                attachmentsByMessage
+                        .computeIfAbsent(
+                                messageId,
+                                ignored -> new ArrayList<>()
+                        )
+                        .add(details);
+            });
+}
+
+                // 6. Формируем ответ для frontend
+                return messages.stream()
+                        .map(message -> new MessageDetails(
+                                message.getId(),
+                                message.getSenderName(),
+                                message.getText(),
+                                message.getSentAt(),
+                                message.getDirection(),
+                                message.getStatus(),
+                                attachmentsByMessage.getOrDefault(
+                                        message.getId(),
+                                        List.of()
+                                )
+                        ))
+                        .toList();
     }
 
     

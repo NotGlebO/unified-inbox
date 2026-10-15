@@ -9,4 +9,7 @@ public interface MessageAttachmentRepository
         extends JpaRepository<MessageAttachmentEntity, Long> {
 
     List<MessageAttachmentEntity> findByMessageId(Long messageId);
+    List<MessageAttachmentEntity> findByMessageIdIn(
+            List<Long> messageIds
+    );
 }

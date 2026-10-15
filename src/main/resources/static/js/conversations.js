@@ -427,6 +427,59 @@ let isSending = false;
         loadMessages(conversation.id);
     }
 
+    function createAttachmentElement(attachment) {
+        const container = document.createElement("div");
+        container.className = "message-attachment";
+
+        const type = attachment.contentType || "";
+        const url = attachment.contentUrl;
+
+        if (type.startsWith("image/") &&
+            type !== "image/svg+xml") {
+
+            const image = document.createElement("img");
+            image.src = url;
+            image.alt = attachment.fileName || "Image";
+            image.loading = "lazy";
+            image.className = "attachment-image";
+
+            container.appendChild(image);
+
+        } else if (type.startsWith("video/")) {
+
+            const video = document.createElement("video");
+            video.src = url;
+            video.controls = true;
+            video.preload = "metadata";
+            video.className = "attachment-video";
+
+            container.appendChild(video);
+
+        } else if (type.startsWith("audio/")) {
+
+            const audio = document.createElement("audio");
+            audio.src = url;
+            audio.controls = true;
+            audio.preload = "none";
+
+            container.appendChild(audio);
+
+        } else {
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.textContent = "📎 " +
+                    (attachment.fileName || "Attachment");
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.className = "attachment-file";
+
+            container.appendChild(link);
+        }
+
+        return container;
+    }
+
     function renderMessages(messages) {
         const wasNearBottom =
             messageList.scrollHeight -
@@ -464,7 +517,19 @@ let isSending = false;
             time.textContent = formatTime(message.sentAt);
 
             
-            bubble.append(sender, text, time);
+            bubble.appendChild(sender);
+
+            if (message.text) {
+                bubble.appendChild(text);
+            }
+
+            if (Array.isArray(message.attachments)) {
+                message.attachments.forEach(attachment => {
+                    bubble.appendChild(createAttachmentElement(attachment));
+                });
+            }
+
+            bubble.appendChild(time);
 
             if (message.direction === "OUTGOING") {
 

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 import java.util.UUID;
 
@@ -40,5 +41,15 @@ public class FileStorageService {
         );
 
         return key;
+    }
+
+    public byte[] download(String storageKey) {
+
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(storageKey)
+                .build();
+
+        return s3Client.getObjectAsBytes(request).asByteArray();
     }
 }

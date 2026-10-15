@@ -8,6 +8,9 @@ import com.unifiedinbox.unified_inbox.repository.MessageRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 
@@ -16,15 +19,18 @@ public class MessageAttachmentService {
 
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
 
+    private final OrganizationService organizationService;
     private final FileStorageService fileStorageService;
     private final MessageRepository messageRepository;
     private final MessageAttachmentRepository attachmentRepository;
 
     public MessageAttachmentService(
+            OrganizationService organizationService,
             FileStorageService fileStorageService,
             MessageRepository messageRepository,
             MessageAttachmentRepository attachmentRepository
     ) {
+        this.organizationService = organizationService;
         this.fileStorageService = fileStorageService;
         this.messageRepository = messageRepository;
         this.attachmentRepository = attachmentRepository;
@@ -122,6 +128,29 @@ public class MessageAttachmentService {
                 );
 
         return attachmentRepository.save(attachment);
+    }
+
+    @Transactional(readOnly = true)
+    public MessageAttachmentEntity getAuthorizedAttachment(
+            Long attachmentId
+    ) {
+        MessageAttachmentEntity attachment =
+                attachmentRepository.findById(attachmentId)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Attachment not found"
+                        ));
+
+        Long organizationId = attachment
+                .getMessage()
+                .getConversation()
+                .getIntegration()
+                .getOrganization()
+                .getId();
+
+        organizationService.requireMember(organizationId);
+
+        return attachment;
     }
     
 }

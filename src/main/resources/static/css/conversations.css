@@ -678,3 +678,38 @@
 .message-status[data-status="UNKNOWN"] {
     color: #fca5a5;
 }
+
+.message-attachment {
+    margin-top: 8px;
+    max-width: 100%;
+}
+
+.attachment-image,
+.attachment-video {
+    display: block;
+    max-width: 100%;
+    width: auto;
+    max-height: 320px;
+    border-radius: 10px;
+    object-fit: contain;
+}
+
+.attachment-video {
+    width: 100%;
+    background: #000;
+}
+
+.message-attachment audio {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+}
+
+.attachment-file {
+    display: inline-block;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}
