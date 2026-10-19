@@ -3,10 +3,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const page = document.querySelector("[data-organization-id]");
     const modal = document.getElementById("integrationModal");
     const openButton = document.getElementById("openIntegrationModal");
+    const connected = document.getElementById("connectedIntegrations");
 
-    if (!page || !modal || !openButton) return;
+    if (!page) return;
 
-    const organizationId = page.dataset.organizationId;
+    const organizationId = encodeURIComponent(page.dataset.organizationId);
+    const base = `/organizations/${organizationId}/integrations`;
+    const csrf = document.querySelector('input[name="_csrf"]')?.value;
+
+    const headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrf || ""
+    };
+
     const closeButton = document.getElementById("closeIntegrationModal");
     const selectButton = document.getElementById("integrationSelect");
     const selectedService = document.getElementById("integrationSelectedService");
@@ -16,47 +26,67 @@ document.addEventListener("DOMContentLoaded", () => {
     const instructions = document.getElementById("integrationInstructions");
     const fields = document.getElementById("integrationFields");
     const form = document.getElementById("integrationForm");
-    const submitButton = document.getElementById("integrationSubmit");
+    const submit = document.getElementById("integrationSubmit");
     const feedback = document.getElementById("integrationFeedback");
 
-    let providers = [];
-    let selectedProvider = null;
+    let selected = null;
+    let pollTimer = null;
+    let generation = 0;
 
+    async function request(url, options = {}) {
+        const response = await fetch(url, {
+            credentials: "same-origin",
+            cache: "no-store",
+            ...options
+        });
 
-    
-    const connectedContainer =
-        document.getElementById("connectedIntegrations");
+        if (!response.ok) {
+            let message = `Request failed (${response.status})`;
 
-    async function loadConnectedIntegrations() {
-        if (!connectedContainer) return;
+            try {
+                const data = await response.json();
+                message = data.detail || data.message || message;
+            } catch (_) {}
+
+            throw new Error(message);
+        }
+
+        if (response.status === 204) return null;
+        return response.json();
+    }
+
+    function stopPolling() {
+        generation++;
+        if (pollTimer) clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+
+    function setFeedback(message) {
+        if (feedback) feedback.textContent = message || "";
+    }
+
+    function closeOptions() {
+        if (options) options.hidden = true;
+        selectButton?.setAttribute("aria-expanded", "false");
+    }
+
+    function closeModal() {
+        stopPolling();
+        modal.hidden = true;
+        closeOptions();
+        form.reset();
+        openButton?.focus();
+    }
+
+    async function loadConnected() {
+        if (!connected) return;
 
         try {
-            const response = await fetch(
-                `/organizations/${encodeURIComponent(organizationId)}/integrations/connected`,
-                {
-                    credentials: "same-origin",
-                    headers: {
-                        "Accept": "application/json"
-                    },
-                    cache: "no-store"
-                }
-            );
+            const integrations = await request(`${base}/connected`);
+            connected.replaceChildren();
 
-            if (!response.ok) {
-                throw new Error(
-                    `Failed to load integrations: ${response.status}`
-                );
-            }
-
-            const integrations = await response.json();
-
-            connectedContainer.replaceChildren();
-
-            if (integrations.length === 0) {
-                const empty = document.createElement("p");
-                empty.className = "integration-empty";
-                empty.textContent = "No integrations connected yet.";
-                connectedContainer.appendChild(empty);
+            if (!integrations.length) {
+                connected.textContent = "No integrations connected yet.";
                 return;
             }
 
@@ -80,7 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 info.append(name, type);
 
+                const actions = document.createElement("div");
+                actions.className = "integration-card-actions";
+
                 const status = document.createElement("span");
+
                 status.className = integration.enabled
                     ? "integration-status-connected"
                     : "integration-status-disabled";
@@ -89,183 +123,54 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? "Connected"
                     : "Disabled";
 
-                
-                const actions = document.createElement("div");
-                actions.className = "integration-card-actions";
-
-                actions.appendChild(status);
+                actions.append(status);
 
                 if (integration.disconnectable && openButton) {
-                    const disconnectButton = document.createElement("button");
-                    disconnectButton.type = "button";
-                    disconnectButton.className = "integration-disconnect-button";
-                    disconnectButton.textContent = "Disconnect";
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "integration-disconnect-button";
+                    button.textContent = "Disconnect";
 
-                    disconnectButton.addEventListener("click", async () => {
-                        const confirmed = confirm(
-                            `Disconnect ${integration.displayName}?`
-                        );
-
-                        if (!confirmed) return;
-
-                        const csrfInput = document.querySelector(
-                            'input[name="_csrf"]'
-                        );
-
-                        if (!csrfInput) {
-                            alert("CSRF token is missing.");
+                    button.onclick = async () => {
+                        if (!confirm(`Disconnect ${integration.displayName}?`)) {
                             return;
                         }
 
-                        disconnectButton.disabled = true;
-                        disconnectButton.textContent = "Disconnecting...";
+                        button.disabled = true;
 
                         try {
-                            const response = await fetch(
-                                `/organizations/${encodeURIComponent(organizationId)}` +
-                                `/integrations/${encodeURIComponent(integration.id)}/disconnect`,
+                            await request(
+                                `${base}/${encodeURIComponent(integration.id)}/disconnect`,
                                 {
                                     method: "POST",
-                                    credentials: "same-origin",
-                                    headers: {
-                                        "Accept": "application/json",
-                                        "X-CSRF-TOKEN": csrfInput.value
-                                    }
+                                    headers
                                 }
                             );
 
-                            
-                            console.log("[DISCONNECT] HTTP status:", response.status);
-
-                            if (!response.ok) {
-                                const responseBody = await response.text();
-
-                                console.error("[DISCONNECT] Server error:", {
-                                    status: response.status,
-                                    body: responseBody
-                                });
-
-                                throw new Error(
-                                    `Disconnect failed with HTTP ${response.status}`
-                                );
-                            }
-
-                            console.log("[DISCONNECT] Request successful.");
-
-
-                            await loadConnectedIntegrations();
-
+                            await loadConnected();
                         } catch (error) {
-                            console.error(error);
-                            alert("Could not disconnect integration.");
-                            disconnectButton.disabled = false;
-                            disconnectButton.textContent = "Disconnect";
+                            alert(error.message);
+                            button.disabled = false;
                         }
-                    });
+                    };
 
-                    actions.appendChild(disconnectButton);
+                    actions.append(button);
                 }
 
                 card.append(icon, info, actions);
-                connectedContainer.appendChild(card);
-
+                connected.append(card);
             }
-
         } catch (error) {
-            console.error(error);
-
-            connectedContainer.textContent =
-                "Could not load connected integrations.";
-        }
-    }
-
-    loadConnectedIntegrations();
-
-    function setFeedback(message) {
-        feedback.textContent = message;
-    }
-
-    function closeOptions() {
-        options.hidden = true;
-        selectButton.setAttribute("aria-expanded", "false");
-    }
-
-    function closeModal() {
-        modal.hidden = true;
-        closeOptions();
-        form.reset();
-        openButton.focus();
-    }
-
-    async function openModal() {
-        modal.hidden = false;
-        setupPanel.hidden = true;
-        selectedProvider = null;
-        selectedService.textContent = "Choose a service...";
-        setFeedback("Loading integrations...");
-        openButton.disabled = true;
-
-        try {
-            const response = await fetch(
-                `/organizations/${encodeURIComponent(organizationId)}/integrations/catalog`,
-                {
-                    credentials: "same-origin",
-                    headers: { "Accept": "application/json" }
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error("Could not load integrations.");
-            }
-
-            providers = await response.json();
-            renderOptions();
-
-            setFeedback(
-                providers.length === 0
-                    ? "No integrations are available."
-                    : ""
-            );
-
-            selectButton.focus();
-        } catch (error) {
-            setFeedback("Failed to load integrations. Please try again.");
-        } finally {
-            openButton.disabled = false;
-        }
-    }
-
-    function renderOptions() {
-        options.replaceChildren();
-
-        for (const provider of providers) {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "integration-option";
-            button.setAttribute("role", "option");
-            button.setAttribute("aria-selected", "false");
-
-            const icon = document.createElement("img");
-            icon.src = provider.iconPath;
-            icon.alt = "";
-            icon.width = 24;
-            icon.height = 24;
-
-            const name = document.createElement("span");
-            name.textContent = provider.displayName;
-
-            button.append(icon, name);
-
-            button.addEventListener("click", () => {
-                selectProvider(provider);
-            });
-
-            options.appendChild(button);
+            connected.textContent =
+                `Could not load integrations: ${error.message}`;
         }
     }
 
     function selectProvider(provider) {
-        selectedProvider = provider;
+        stopPolling();
+        selected = provider;
+        closeOptions();
+
         selectedService.replaceChildren();
 
         const icon = document.createElement("img");
@@ -274,127 +179,305 @@ document.addEventListener("DOMContentLoaded", () => {
         icon.width = 22;
         icon.height = 22;
 
-        const name = document.createElement("span");
-        name.textContent = provider.displayName;
+        const label = document.createElement("span");
+        label.textContent = provider.displayName;
 
-        selectedService.append(icon, name);
-        closeOptions();
+        selectedService.append(icon, label);
 
-        description.textContent = provider.setup.description;
+        description.textContent = provider.setup.description || "";
 
         instructions.replaceChildren();
 
-        for (const instruction of provider.setup.instructions) {
-            const item = document.createElement("li");
-            item.textContent = instruction;
-            instructions.appendChild(item);
+        for (const step of provider.setup.instructions || []) {
+            const li = document.createElement("li");
+            li.textContent = step;
+            instructions.append(li);
         }
 
         fields.replaceChildren();
         form.reset();
 
-        const connectionType = provider.setup.connectionType;
+        for (const field of provider.setup.fields || []) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "integration-field";
 
-        if (connectionType === "TOKEN") {
-            for (const field of provider.setup.fields) {
-                const wrapper = document.createElement("div");
-                wrapper.className = "integration-field";
+            const label = document.createElement("label");
+            label.textContent = field.label;
+            label.htmlFor = `integration-${field.name}`;
 
-                const label = document.createElement("label");
-                label.textContent = field.label;
-                label.htmlFor = `integration-${field.name}`;
+            const input = document.createElement("input");
+            input.id = label.htmlFor;
+            input.name = field.name;
 
-                const input = document.createElement("input");
-                input.id = `integration-${field.name}`;
-                input.name = field.name;
-                input.type = ["text", "password", "email"].includes(field.type)
-                    ? field.type
-                    : "text";
-                input.placeholder = field.placeholder || "";
-                input.required = field.required;
-                input.autocomplete = "off";
+            input.type = ["text", "password", "email"].includes(field.type)
+                ? field.type
+                : "text";
 
-                wrapper.append(label, input);
-                fields.appendChild(wrapper);
-            }
+            input.placeholder = field.placeholder || "";
+            input.required = !!field.required;
+            input.autocomplete = "off";
 
-            submitButton.textContent = `Connect ${provider.displayName}`;
-            submitButton.disabled = false;
-
-        } else {
-            submitButton.textContent = "Connection not available yet";
-            submitButton.disabled = true;
+            wrapper.append(label, input);
+            fields.append(wrapper);
         }
+
+        submit.hidden = false;
+
+        submit.disabled = !["TOKEN", "QR", "OAUTH"].includes(
+            provider.setup.connectionType
+        );
+
+        submit.textContent = `Connect ${provider.displayName}`;
 
         setFeedback("");
         setupPanel.hidden = false;
-
-        const firstInput = fields.querySelector("input");
-        if (firstInput) firstInput.focus();
     }
 
-    selectButton.addEventListener("click", () => {
-        if (options.hidden) {
-            options.hidden = false;
-            selectButton.setAttribute("aria-expanded", "true");
-            options.querySelector("button")?.focus();
-        } else {
-            closeOptions();
+    function normalizeQr(payload) {
+        if (typeof payload === "string") {
+            if (payload.startsWith("data:image/")) {
+                return payload;
+            }
+
+            if (
+                /^[A-Za-z0-9+/=\r\n]+$/.test(payload) &&
+                payload.length > 100
+            ) {
+                return `data:image/png;base64,${payload.replace(/\s/g, "")}`;
+            }
+
+            return null;
         }
-    });
 
-    openButton.addEventListener("click", openModal);
-    closeButton.addEventListener("click", closeModal);
+        if (!payload || typeof payload !== "object") {
+            return null;
+        }
 
-    modal.addEventListener("click", (event) => {
+        for (const key of [
+            "base64",
+            "qrcode",
+            "qrCode",
+            "qr",
+            "image"
+        ]) {
+            if (payload[key]) {
+                const result = normalizeQr(payload[key]);
+                if (result) return result;
+            }
+        }
+
+        return null;
+    }
+
+    async function renderResult(result) {
+        setFeedback(result.view?.message || result.status || "");
+        fields.replaceChildren();
+
+        if (result.view?.type === "QR" && result.view.imageUrl) {
+            const response = await request(result.view.imageUrl);
+            const source = normalizeQr(response);
+
+            if (!source) {
+                throw new Error("QR image is missing in the API response");
+            }
+
+            const img = document.createElement("img");
+            img.src = source;
+            img.alt = "WhatsApp QR code";
+
+            img.style.cssText = [
+                "display:block",
+                "width:240px",
+                "max-width:100%",
+                "margin:16px auto",
+                "background:white",
+                "padding:10px",
+                "border-radius:8px"
+            ].join(";");
+
+            fields.append(img);
+        }
+
+        if (result.status === "CONNECTED") {
+            submit.hidden = true;
+            await loadConnected();
+            return;
+        }
+
+        submit.hidden = true;
+
+        if (result.nextAction?.type === "POLL") {
+            pollStatus(result.nextAction);
+        }
+    }
+
+    function pollStatus(action) {
+        const currentGeneration = generation;
+        const interval = Math.max(1000, action.intervalMs || 2000);
+
+        async function tick() {
+            if (modal.hidden || generation !== currentGeneration) {
+                return;
+            }
+
+            try {
+                const state = await request(action.url);
+
+                if (state.status === "CONNECTED") {
+                    stopPolling();
+                    setFeedback("Connected successfully");
+                    fields.replaceChildren();
+                    await loadConnected();
+                    return;
+                }
+
+                if (["FAILED", "CONFLICT", "DISCONNECTED"].includes(
+                    state.status
+                )) {
+                    stopPolling();
+                    setFeedback(
+                        `Connection ${state.status.toLowerCase()}. Close and try again.`
+                    );
+                    return;
+                }
+            } catch (error) {
+                setFeedback(`Waiting for connection: ${error.message}`);
+            }
+
+            if (generation === currentGeneration) {
+                pollTimer = setTimeout(tick, interval);
+            }
+        }
+
+        pollTimer = setTimeout(tick, interval);
+    }
+
+    if (!modal || !openButton) {
+        loadConnected();
+        return;
+    }
+
+    openButton.onclick = async () => {
+        stopPolling();
+
+        modal.hidden = false;
+        setupPanel.hidden = true;
+        selected = null;
+
+        selectedService.textContent = "Choose a service...";
+        setFeedback("Loading integrations...");
+
+        try {
+            const providers = await request(`${base}/catalog`);
+            options.replaceChildren();
+
+            for (const provider of providers) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "integration-option";
+
+                const icon = document.createElement("img");
+                icon.src = provider.iconPath;
+                icon.alt = "";
+                icon.width = 24;
+                icon.height = 24;
+
+                const name = document.createElement("span");
+                name.textContent = provider.displayName;
+
+                button.append(icon, name);
+                button.onclick = () => selectProvider(provider);
+
+                options.append(button);
+            }
+
+            setFeedback(
+                providers.length ? "" : "No integrations available"
+            );
+        } catch (error) {
+            setFeedback(error.message);
+        }
+    };
+
+    closeButton.onclick = closeModal;
+
+    modal.addEventListener("click", event => {
         if (event.target === modal) closeModal();
     });
 
-    document.addEventListener("keydown", (event) => {
-        if (modal.hidden) return;
-
-        if (event.key === "Escape") {
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !modal.hidden) {
             if (!options.hidden) {
                 closeOptions();
-                selectButton.focus();
             } else {
                 closeModal();
             }
         }
     });
 
-    form.addEventListener("submit", (event) => {
-        if (!selectedProvider ||
-            selectedProvider.setup.connectionType !== "TOKEN") {
-            event.preventDefault();
+    selectButton.onclick = () => {
+        options.hidden = !options.hidden;
+        selectButton.setAttribute(
+            "aria-expanded",
+            String(!options.hidden)
+        );
+    };
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        if (!selected) return;
+
+        const mode = selected.setup.connectionType;
+
+        if (mode === "OAUTH") {
+            const url = selected.setup.submitUrl?.replace(
+                "{id}",
+                organizationId
+            );
+
+            if (
+                !url ||
+                !url.startsWith("/") ||
+                url.startsWith("//")
+            ) {
+                setFeedback("Invalid OAuth URL");
+                return;
+            }
+
+            window.location.assign(url);
             return;
         }
 
-        const template = selectedProvider.setup.submitUrl;
+        if (!["TOKEN", "QR"].includes(mode)) return;
 
-        // Only allow application-relative integration endpoints.
-        const expectedPrefix =
-            `/organizations/{id}/integrations/`;
+        stopPolling();
+        submit.disabled = true;
+        setFeedback("Connecting...");
 
-        if (!template.startsWith(expectedPrefix)) {
-            event.preventDefault();
-            setFeedback("Invalid integration endpoint.");
-            return;
-        }
-
-        const action = template.replace(
-            "{id}",
-            encodeURIComponent(organizationId)
+        const credentials = Object.fromEntries(
+            new FormData(form).entries()
         );
 
-        if (!/^\/organizations\/[^/]+\/integrations\/[a-zA-Z0-9_-]+$/.test(action)) {
-            event.preventDefault();
-            setFeedback("Invalid integration endpoint.");
-            return;
-        }
+        delete credentials._csrf;
 
-        form.action = action;
-        submitButton.disabled = true;
-        submitButton.textContent = "Connecting...";
+        try {
+            const result = await request(
+                `${base}/connect/${encodeURIComponent(selected.type)}`,
+                {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify(credentials)
+                }
+            );
+
+            await renderResult(result);
+        } catch (error) {
+            setFeedback(error.message);
+            submit.disabled = false;
+            submit.hidden = false;
+        }
     });
+
+    loadConnected();
 });
