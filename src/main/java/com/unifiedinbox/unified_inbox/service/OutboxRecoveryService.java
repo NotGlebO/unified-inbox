@@ -3,7 +3,6 @@ package com.unifiedinbox.unified_inbox.service;
 
 import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
 import com.unifiedinbox.unified_inbox.entity.MessageEntity;
-import com.unifiedinbox.unified_inbox.entity.OutboxEntity;
 import com.unifiedinbox.unified_inbox.repository.OutboxRepository;
 
 import org.springframework.stereotype.Service;

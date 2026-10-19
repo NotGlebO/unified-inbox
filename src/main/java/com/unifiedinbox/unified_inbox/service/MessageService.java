@@ -7,7 +7,6 @@ import com.unifiedinbox.unified_inbox.entity.MessageEntity;
 import com.unifiedinbox.unified_inbox.repository.ConversationRepository;
 import com.unifiedinbox.unified_inbox.repository.IntegrationRepository;
 import com.unifiedinbox.unified_inbox.repository.MessageRepository;
-import com.unifiedinbox.unified_inbox.core.adapter.AdapterRegistry;
 import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
 import java.time.Instant;
 
@@ -24,7 +23,6 @@ import com.unifiedinbox.unified_inbox.repository.MessageAttachmentRepository;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -35,7 +33,6 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final IntegrationRepository integrationRepository;
-    private final AdapterRegistry adapterRegistry;
     private final MessageAttachmentRepository attachmentRepository;
 
     public MessageService(
@@ -43,7 +40,6 @@ public class MessageService {
             ConversationRepository conversationRepository,
             IntegrationRepository integrationRepository,
             OrganizationService organizationService,
-            AdapterRegistry adapterRegistry,
             OutboxRepository outboxRepository,
             MessageAttachmentRepository attachmentRepository
     ) {
@@ -51,7 +47,6 @@ public class MessageService {
         this.conversationRepository = conversationRepository;
         this.integrationRepository = integrationRepository;
         this.organizationService = organizationService;
-        this.adapterRegistry = adapterRegistry;
         this.outboxRepository = outboxRepository;
         this.attachmentRepository = attachmentRepository;
     }

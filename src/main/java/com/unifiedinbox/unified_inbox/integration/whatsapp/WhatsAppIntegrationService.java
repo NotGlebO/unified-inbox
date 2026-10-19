@@ -10,12 +10,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.UUID;
 
 @Service
 public class WhatsAppIntegrationService {
 
+    private final String webhookSecret;
     private final OrganizationService organizationService;
     private final IntegrationRepository integrationRepository;
     private final WhatsAppConnectionRepository connectionRepository;
@@ -27,13 +29,15 @@ public class WhatsAppIntegrationService {
             IntegrationRepository integrationRepository,
             WhatsAppConnectionRepository connectionRepository,
             EvolutionApiClient evolutionApiClient,
-            TransactionTemplate transactionTemplate
+            TransactionTemplate transactionTemplate,
+            @Value("${evolution.webhook.secret}") String webhookSecret
     ) {
         this.organizationService = organizationService;
         this.integrationRepository = integrationRepository;
         this.connectionRepository = connectionRepository;
         this.evolutionApiClient = evolutionApiClient;
         this.transactionTemplate = transactionTemplate;
+        this.webhookSecret = webhookSecret;
     }
 
     public Long connect(Long organizationId) {
@@ -69,6 +73,10 @@ public class WhatsAppIntegrationService {
 
         try {
             evolutionApiClient.createInstance(instanceName);
+            evolutionApiClient.configureWebhook(
+                    instanceName,
+                    webhookSecret
+            );
 
             updateStatus(
                     integrationId,
