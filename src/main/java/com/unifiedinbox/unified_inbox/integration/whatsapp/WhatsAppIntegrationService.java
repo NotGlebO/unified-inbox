@@ -11,11 +11,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 @Service
 public class WhatsAppIntegrationService {
+    private static final Logger log =
+        LoggerFactory.getLogger(WhatsAppIntegrationService.class);
 
     private final String webhookSecret;
     private final OrganizationService organizationService;
@@ -85,6 +89,14 @@ public class WhatsAppIntegrationService {
 
         } catch (Exception exception) {
 
+            log.error(
+                    "Failed to initialize WhatsApp integration. " +
+                    "integrationId={}, instanceName={}",
+                    integrationId,
+                    instanceName,
+                    exception
+            );
+
             updateStatus(
                     integrationId,
                     WhatsAppConnectionStatus.FAILED
@@ -101,22 +113,37 @@ public class WhatsAppIntegrationService {
     }
 
    
+   
     private void updateStatus(
             Long integrationId,
             WhatsAppConnectionStatus newStatus
     ) {
-        transactionTemplate.executeWithoutResult(status -> {
+        transactionTemplate.executeWithoutResult(tx -> {
 
             WhatsAppConnectionEntity connection =
                     connectionRepository.findByIntegrationId(integrationId)
                             .orElseThrow();
 
+            WhatsAppConnectionStatus currentStatus =
+                    connection.getStatus();
+
+            // Never overwrite a successfully connected account
+            // with a waiting or failed state from setup.
+            if (currentStatus == WhatsAppConnectionStatus.CONNECTED
+                    && (newStatus == WhatsAppConnectionStatus.WAITING_FOR_QR
+                        || newStatus == WhatsAppConnectionStatus.FAILED)) {
+                return;
+            }
+
+            if (currentStatus == WhatsAppConnectionStatus.CONFLICT
+                    || currentStatus == WhatsAppConnectionStatus.DISCONNECTED) {
+                return;
+            }
+
             connection.setStatus(newStatus);
 
-            IntegrationEntity integration = connection.getIntegration();
-
             if (newStatus == WhatsAppConnectionStatus.FAILED) {
-                integration.setEnabled(false);
+                connection.getIntegration().setEnabled(false);
             }
         });
     }

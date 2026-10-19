@@ -122,4 +122,27 @@ public class WhatsAppAccountBindingService {
         });
     }
 
+    
+    public void markDisconnected(String instanceName) {
+        transactions.executeWithoutResult(tx -> {
+            WhatsAppConnectionEntity connection = repository
+                    .findByInstanceName(instanceName)
+                    .orElseThrow();
+
+            // Do not change terminal or blocked connections.
+            if (!connection.getIntegration().isEnabled()
+                    || connection.getStatus() == WhatsAppConnectionStatus.CONFLICT
+                    || connection.getStatus() == WhatsAppConnectionStatus.FAILED) {
+                return;
+            }
+
+            if (connection.getStatus() == WhatsAppConnectionStatus.CONNECTED) {
+                connection.setStatus(
+                        WhatsAppConnectionStatus.DISCONNECTED
+                );
+            }
+        });
+    }
+
+
 }

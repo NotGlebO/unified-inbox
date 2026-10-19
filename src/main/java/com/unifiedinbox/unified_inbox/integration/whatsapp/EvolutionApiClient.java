@@ -32,12 +32,26 @@ public class EvolutionApiClient {
                 .build();
     }
 
+
     public String createInstance(String instanceName) {
+
+        Map<String, Object> webhook = Map.of(
+                "enabled", false,
+                "url", webhookUrl,
+                "webhookByEvents", false,
+                "webhookBase64", false,
+                "events", new String[]{
+                        "CONNECTION_UPDATE",
+                        "QRCODE_UPDATED",
+                        "MESSAGES_UPSERT"
+                }
+        );
 
         Map<String, Object> request = Map.of(
                 "instanceName", instanceName,
                 "integration", "WHATSAPP-BAILEYS",
-                "qrcode", true
+                "qrcode", true,
+                "webhook", webhook
         );
 
         return restClient.post()
@@ -67,11 +81,12 @@ public class EvolutionApiClient {
     }
 
     
+
     public void configureWebhook(
             String instanceName,
             String webhookSecret
     ) {
-        Map<String, Object> request = Map.of(
+        Map<String, Object> webhook = Map.of(
                 "enabled", true,
                 "url", webhookUrl,
                 "webhookByEvents", false,
@@ -84,6 +99,10 @@ public class EvolutionApiClient {
                 "headers", Map.of(
                         "x-webhook-secret", webhookSecret
                 )
+        );
+
+        Map<String, Object> request = Map.of(
+                "webhook", webhook
         );
 
         restClient.post()
@@ -151,6 +170,14 @@ public class EvolutionApiClient {
                     exception
             );
         }
+    }
+
+    
+    public String getQrCode(String instanceName) {
+        return restClient.get()
+                .uri("/instance/connect/{instanceName}", instanceName)
+                .retrieve()
+                .body(String.class);
     }
 
 

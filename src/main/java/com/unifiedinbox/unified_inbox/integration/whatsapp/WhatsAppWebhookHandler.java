@@ -90,9 +90,25 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
                 .path("state")
                 .asString("");
 
+        
+        if ("close".equalsIgnoreCase(state)) {
+
+            // Verify current state to avoid processing an old
+            // close event after a newer open event.
+            EvolutionInstanceInfo info =
+                    evolutionApiClient.getVerifiedInstanceInfo(instanceName);
+
+            if ("close".equalsIgnoreCase(info.connectionStatus())) {
+                bindingService.markDisconnected(instanceName);
+            }
+
+            return ResponseEntity.ok().build();
+        }
+
         if (!"open".equalsIgnoreCase(state)) {
             return ResponseEntity.ok().build();
         }
+
 
         // Verify the account through our authenticated
         // Evolution API connection.
