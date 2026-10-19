@@ -21,25 +21,22 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
 
     private final ObjectMapper objectMapper;
     private final WhatsAppConnectionRepository connectionRepository;
-    private final String webhookSecret;
-    
     private final EvolutionApiClient evolutionApiClient;
     private final WhatsAppAccountBindingService bindingService;
-
+    private final String webhookSecret;
 
     public WhatsAppWebhookHandler(
             ObjectMapper objectMapper,
             WhatsAppConnectionRepository connectionRepository,
-            @Value("${evolution.webhook.secret}") String webhookSecret,
             EvolutionApiClient evolutionApiClient,
-            WhatsAppAccountBindingService bindingService
+            WhatsAppAccountBindingService bindingService,
+            @Value("${evolution.webhook.secret}") String webhookSecret
     ) {
         this.objectMapper = objectMapper;
         this.connectionRepository = connectionRepository;
-        this.webhookSecret = webhookSecret;
         this.evolutionApiClient = evolutionApiClient;
         this.bindingService = bindingService;
-
+        this.webhookSecret = webhookSecret;
     }
 
     @Override
@@ -62,42 +59,68 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        final JsonNode payload;
+
         try {
-            JsonNode payload = objectMapper.readTree(body);
-
-            String instanceName =
-                    payload.path("instance").asString("");
-
-            if (instanceName.isBlank()) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            var connection =
-                    connectionRepository.findByInstanceName(instanceName);
-
-            if (connection.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            }
-
-            String event = payload.path("event").asString("");
-
-            if ("connection.update".equalsIgnoreCase(event)) {
-
-                String state = payload.path("data")
-                        .path("state")
-                        .asString("");
-
-                if ("open".equalsIgnoreCase(state)) {
-                    // Next step:
-                    // Resolve the verified account JID from Evolution API,
-                    // then call WhatsAppAccountBindingService.
-                }
-            }
-
-            return ResponseEntity.ok().build();
-
+            payload = objectMapper.readTree(body);
         } catch (JacksonException exception) {
             return ResponseEntity.badRequest().build();
         }
+
+        String instanceName =
+                payload.path("instance").asString("");
+
+        if (instanceName.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        if (connectionRepository
+                .findByInstanceName(instanceName)
+                .isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String event = payload.path("event").asString("");
+
+        if (!"connection.update".equalsIgnoreCase(event)) {
+            return ResponseEntity.ok().build();
+        }
+
+        String state = payload.path("data")
+                .path("state")
+                .asString("");
+
+        if (!"open".equalsIgnoreCase(state)) {
+            return ResponseEntity.ok().build();
+        }
+
+        // Verify the account through our authenticated
+        // Evolution API connection.
+        EvolutionInstanceInfo info =
+                evolutionApiClient.getVerifiedInstanceInfo(instanceName);
+
+        if (!"open".equalsIgnoreCase(info.connectionStatus())) {
+            return ResponseEntity.ok().build();
+        }
+
+        if (info.ownerJid() == null
+                || info.ownerJid().isBlank()) {
+            return ResponseEntity.ok().build();
+        }
+
+        WhatsAppBindingResult result =
+                bindingService.bindAccount(
+                        instanceName,
+                        info.ownerJid()
+                );
+
+        if (result == WhatsAppBindingResult.CONFLICT) {
+            bindingService.markConflict(instanceName);
+            evolutionApiClient.deleteInstance(instanceName);
+        } else if (result == WhatsAppBindingResult.REJECTED) {
+            evolutionApiClient.deleteInstance(instanceName);
+        }
+
+        return ResponseEntity.ok().build();
     }
 }

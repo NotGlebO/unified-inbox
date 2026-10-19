@@ -21,4 +21,8 @@ public interface WhatsAppConnectionRepository
             Long organizationId
     );
 
+    Optional<WhatsAppConnectionEntity> findByWhatsappJid(
+            String whatsappJid
+    );
+
 }

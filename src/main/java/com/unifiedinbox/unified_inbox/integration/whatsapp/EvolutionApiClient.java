@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
@@ -13,12 +16,15 @@ public class EvolutionApiClient {
 
     private final String webhookUrl;
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
     public EvolutionApiClient(
             @Value("${evolution.api.url}") String baseUrl,
             @Value("${evolution.api.key}") String apiKey,
-            @Value("${evolution.webhook.url}") String webhookUrl
+            @Value("${evolution.webhook.url}") String webhookUrl,
+            ObjectMapper objectMapper
     ) {
+        this.objectMapper = objectMapper;
         this.webhookUrl = webhookUrl;
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
@@ -100,6 +106,52 @@ public class EvolutionApiClient {
                 .body(String.class);
     }
 
+
+    public EvolutionInstanceInfo getVerifiedInstanceInfo(
+            String instanceName
+    ) {
+        String response = getInstanceInfo(instanceName);
+
+        if (response == null || response.isBlank()) {
+            throw new IllegalStateException(
+                    "Evolution API returned an empty response"
+            );
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(response);
+
+            if (!root.isArray()) {
+                throw new IllegalStateException(
+                        "Unexpected Evolution API response format"
+                );
+            }
+
+            for (JsonNode instance : root) {
+                String name = instance.path("name").asString("");
+
+                if (!instanceName.equals(name)) {
+                    continue;
+                }
+
+                return new EvolutionInstanceInfo(
+                        name,
+                        instance.path("ownerJid").asString(""),
+                        instance.path("connectionStatus").asString("")
+                );
+            }
+
+            throw new IllegalStateException(
+                    "WhatsApp instance not found in Evolution API"
+            );
+
+        } catch (JacksonException exception) {
+            throw new IllegalStateException(
+                    "Cannot parse Evolution API response",
+                    exception
+            );
+        }
+    }
 
 
 }
