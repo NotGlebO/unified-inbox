@@ -41,6 +41,7 @@ target/
 .idea/
 
 # Secrets
+docker/evolution/.env
 .env
 .env.*
 application-local.properties

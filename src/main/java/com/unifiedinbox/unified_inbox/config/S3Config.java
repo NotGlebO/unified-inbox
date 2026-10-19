@@ -26,8 +26,9 @@ public class S3Config {
         System.out.println("B2 region: " + region);
         System.out.println("B2 Access Key has spaces: "
                 + !accessKey.equals(accessKey.trim()));
+        System.out.println("Actual B2 endpoint = [" + endpoint + "]");
         return S3Client.builder()
-                .endpointOverride(URI.create(endpoint))
+                .endpointOverride(URI.create(endpoint.trim()))
                 .region(Region.of(region))
                 .credentialsProvider(
                         StaticCredentialsProvider.create(
