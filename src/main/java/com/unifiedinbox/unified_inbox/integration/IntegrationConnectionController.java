@@ -4,6 +4,7 @@ package com.unifiedinbox.unified_inbox.integration;
 import com.unifiedinbox.unified_inbox.core.dto.ConnectedIntegration;
 import com.unifiedinbox.unified_inbox.entity.IntegrationEntity;
 import com.unifiedinbox.unified_inbox.integration.whatsapp.EvolutionApiClient;
+import com.unifiedinbox.unified_inbox.integration.whatsapp.WhatsAppConnectionEntity;
 import com.unifiedinbox.unified_inbox.integration.whatsapp.WhatsAppConnectionRepository;
 import com.unifiedinbox.unified_inbox.repository.IntegrationRepository;
 import com.unifiedinbox.unified_inbox.service.OrganizationService;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import com.unifiedinbox.unified_inbox.integration.whatsapp.WhatsAppConnectionEntity;
 
 import java.util.List;
 
@@ -86,16 +88,28 @@ public class IntegrationConnectionController {
     private ConnectedIntegration toDto(
             IntegrationEntity integration
     ) {
-        return new ConnectedIntegration(
-                integration.getId(),
-                integration.getType(),
-                integration.getDisplayName(),
-                integration.getIconPath(),
-                integration.isEnabled(),
-                disconnectService.supportsDisconnect(
-                        integration.getType()
-                )
-        );
+    String accountLabel = null;
+
+    if ("WHATSAPP".equals(integration.getType())) {
+            accountLabel = whatsappRepository
+                    .findByIntegrationId(integration.getId())
+                    .map(WhatsAppConnectionEntity::getWhatsappJid)
+                    .filter(jid -> jid.endsWith("@s.whatsapp.net"))
+                    .map(jid -> "+" + jid.replace("@s.whatsapp.net", ""))
+                    .orElse(null);
+    }
+
+    return new ConnectedIntegration(
+            integration.getId(),
+            integration.getType(),
+            integration.getDisplayName(),
+            integration.getIconPath(),
+            integration.isEnabled(),
+            disconnectService.supportsDisconnect(
+                    integration.getType()
+            ),
+            accountLabel
+    );
     }
 
     @PostMapping(

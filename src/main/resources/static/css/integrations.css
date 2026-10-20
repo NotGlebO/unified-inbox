@@ -500,3 +500,10 @@
         justify-content: flex-end;
     }
 }
+
+.integration-account-label {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #64748b;
+}

@@ -1,4 +1,3 @@
-
 package com.unifiedinbox.unified_inbox.core.dto;
 
 public record ConnectedIntegration(
@@ -7,6 +6,7 @@ public record ConnectedIntegration(
         String displayName,
         String iconPath,
         boolean enabled,
-        boolean disconnectable
+        boolean disconnectable,
+        String accountLabel
 ) {
 }

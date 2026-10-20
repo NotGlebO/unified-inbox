@@ -85,4 +85,15 @@ public class WhatsAppConnectionEntity {
         this.status = status;
     }
 
+    @Column(name = "error_message", length = 500)
+    private String errorMessage;
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
 }

@@ -115,6 +115,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 info.append(name, type);
 
+                if (integration.accountLabel) {
+                    const account = document.createElement("small");
+                    account.textContent = integration.accountLabel;
+                    account.className = "integration-account-label";
+
+                    info.append(account);
+                }
+
                 const actions = document.createElement("div");
                 actions.className = "integration-card-actions";
 
@@ -410,6 +418,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     stopPolling();
 
                     setFeedback(
+                        state.view?.message ||
                         `Connection ${state.status.toLowerCase()}. Please try again.`
                     );
 

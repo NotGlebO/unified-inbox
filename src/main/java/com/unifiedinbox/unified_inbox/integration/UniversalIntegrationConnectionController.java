@@ -70,6 +70,7 @@ public class UniversalIntegrationConnectionController {
         return handler.connect(organizationId, credentials);
     }
 
+
     @GetMapping("/{integrationId}/connection-status")
     public IntegrationConnectionResult status(
             @PathVariable Long organizationId,
@@ -87,6 +88,7 @@ public class UniversalIntegrationConnectionController {
         }
 
         if ("WHATSAPP".equals(integration.getType())) {
+
             var connection = whatsappConnections
                     .findByIntegrationId(integrationId)
                     .orElseThrow(() ->
@@ -95,20 +97,18 @@ public class UniversalIntegrationConnectionController {
 
             String status = connection.getStatus().name();
 
-            if (integration.isEnabled()
-                    && status.equals("CONNECTED")) {
-                status = "WAITING_FOR_QR";
-            }
-
+            // Check Evolution API only for non-terminal states.
             if (integration.isEnabled()
                     && !status.equals("FAILED")
                     && !status.equals("CONFLICT")) {
+
                 try {
                     String response = evolution.getConnectionState(
                             connection.getInstanceName()
                     );
 
                     JsonNode root = objectMapper.readTree(response);
+
                     String state = root.path("instance")
                             .path("state")
                             .asString("");
@@ -117,25 +117,46 @@ public class UniversalIntegrationConnectionController {
                         status = "CONNECTED";
                     } else if ("close".equalsIgnoreCase(state)) {
                         status = "WAITING_FOR_QR";
+                    } else if ("CONNECTED".equals(status)) {
+                        status = "WAITING_FOR_QR";
                     }
+
                 } catch (Exception exception) {
-                    // Do not report CONNECTED when verification fails.
+                    // Cannot verify the current connection state.
                     status = "WAITING_FOR_QR";
                 }
             }
 
-            if (!integration.isEnabled()) {
+            // Preserve error states even if integration was disabled.
+            if (!integration.isEnabled()
+                    && !"CONFLICT".equals(status)
+                    && !"FAILED".equals(status)) {
                 status = "DISCONNECTED";
+            }
+
+            String message = status;
+
+            if ("CONFLICT".equals(status)) {
+                message = connection.getErrorMessage() != null
+                        ? connection.getErrorMessage()
+                        : "This WhatsApp account is already connected to another integration.";
+            }
+
+            if ("FAILED".equals(status)) {
+                message = connection.getErrorMessage() != null
+                        ? connection.getErrorMessage()
+                        : "Failed to connect WhatsApp.";
             }
 
             return new IntegrationConnectionResult(
                     integrationId,
                     status,
-                    new IntegrationView("MESSAGE", null, status),
+                    new IntegrationView("MESSAGE", null, message),
                     null
             );
         }
 
+        // Other integrations: Telegram, Gmail, etc.
         String status = integration.isEnabled()
                 ? "CONNECTED"
                 : "DISCONNECTED";
@@ -147,4 +168,6 @@ public class UniversalIntegrationConnectionController {
                 null
         );
     }
+
+
 }

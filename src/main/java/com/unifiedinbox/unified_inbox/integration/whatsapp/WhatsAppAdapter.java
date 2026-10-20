@@ -76,16 +76,16 @@ public class WhatsAppAdapter implements MessagingAdapter {
             );
         }
 
-        if (!externalChatId.endsWith("@s.whatsapp.net")) {
+        if (externalChatId == null
+        || !(externalChatId.endsWith("@s.whatsapp.net")
+             || externalChatId.endsWith("@lid"))) {
             throw new MessageSendException(
                     MessageSendException.FailureType.PERMANENT,
                     "Unsupported WhatsApp chat ID: " + externalChatId
             );
         }
 
-        String number = externalChatId.substring(
-                0, externalChatId.indexOf('@')
-        );
+        String number = externalChatId;
 
         try {
             String response = evolutionApiClient.sendText(

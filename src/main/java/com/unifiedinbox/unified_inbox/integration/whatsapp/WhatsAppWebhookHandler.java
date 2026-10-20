@@ -20,6 +20,7 @@ import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
 import com.unifiedinbox.unified_inbox.core.dto.UnifiedMessage;
 import com.unifiedinbox.unified_inbox.service.MessageService;
 import java.time.Instant;
+import org.springframework.web.client.HttpClientErrorException;
 
 @Component
 public class WhatsAppWebhookHandler implements WebhookHandler {
@@ -107,8 +108,15 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
 
             // Verify current state to avoid processing an old
             // close event after a newer open event.
-            EvolutionInstanceInfo info =
-                    evolutionApiClient.getVerifiedInstanceInfo(instanceName);
+            EvolutionInstanceInfo info;
+
+            try {
+                info = evolutionApiClient.getVerifiedInstanceInfo(instanceName);
+            } catch (HttpClientErrorException.NotFound exception) {
+                // Инстанс уже удалён из Evolution API.
+                // Игнорируем устаревшее событие webhook.
+                return ResponseEntity.ok().build();
+            }
 
             if ("close".equalsIgnoreCase(info.connectionStatus())) {
                 bindingService.markDisconnected(instanceName);
@@ -124,8 +132,15 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
 
         // Verify the account through our authenticated
         // Evolution API connection.
-        EvolutionInstanceInfo info =
-                evolutionApiClient.getVerifiedInstanceInfo(instanceName);
+        EvolutionInstanceInfo info;
+
+        try {
+            info = evolutionApiClient.getVerifiedInstanceInfo(instanceName);
+        } catch (HttpClientErrorException.NotFound exception) {
+            // Инстанс уже удалён из Evolution API.
+            // Игнорируем устаревшее событие webhook.
+            return ResponseEntity.ok().build();
+        }
 
         if (!"open".equalsIgnoreCase(info.connectionStatus())) {
             return ResponseEntity.ok().build();
@@ -143,8 +158,15 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
                 );
 
         if (result == WhatsAppBindingResult.CONFLICT) {
-            bindingService.markConflict(instanceName);
+
+            String reason = bindingService.describeConflict(
+                    info.ownerJid()
+            );
+
+            bindingService.markConflict(instanceName, reason);
+
             evolutionApiClient.deleteInstance(instanceName);
+
         } else if (result == WhatsAppBindingResult.REJECTED) {
             evolutionApiClient.deleteInstance(instanceName);
         }

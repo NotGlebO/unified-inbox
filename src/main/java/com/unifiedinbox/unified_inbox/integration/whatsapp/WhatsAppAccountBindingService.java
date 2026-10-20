@@ -6,9 +6,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class WhatsAppAccountBindingService {
+    private static final Logger log =
+        LoggerFactory.getLogger(WhatsAppAccountBindingService.class);
 
     private final WhatsAppConnectionRepository repository;
     private final TransactionTemplate transactions;
@@ -26,6 +30,11 @@ public class WhatsAppAccountBindingService {
             String whatsappJid
     ) {
         String jid = normalizeJid(whatsappJid);
+                log.info(
+                "[WA-BIND] START instance={}, jidHash={}",
+                instanceName,
+                Integer.toHexString(jid.hashCode())
+        );
 
         try {
             return transactions.execute(tx -> {
@@ -37,6 +46,19 @@ public class WhatsAppAccountBindingService {
                                 )
                         );
 
+                log.info(
+                    "[WA-BIND] NEW connectionId={}, integrationId={}, enabled={}, status={}, hasJid={}",
+                    connection.getId(),
+                    connection.getIntegration().getId(),
+                    connection.getIntegration().isEnabled(),
+                    connection.getStatus(),
+                    connection.getWhatsappJid() != null
+                ); 
+
+
+                       
+
+               
                 if (!connection.getIntegration().isEnabled()
                         || connection.getStatus() == WhatsAppConnectionStatus.FAILED
                         || connection.getStatus() == WhatsAppConnectionStatus.CONFLICT) {
@@ -49,6 +71,41 @@ public class WhatsAppAccountBindingService {
                 }
 
                 var existing = repository.findByWhatsappJid(jid);
+                log.warn(
+                        "[WA-DIAG] NEW id={}, instance={}, status={}; OLD found={}",
+                        connection.getId(),
+                        instanceName,
+                        connection.getStatus(),
+                        existing.isPresent()
+                );
+
+                existing.ifPresent(old -> log.warn(
+                        "[WA-DIAG] OLD id={}, integrationId={}, enabled={}, status={}",
+                        old.getId(),
+                        old.getIntegration().getId(),
+                        old.getIntegration().isEnabled(),
+                        old.getStatus()
+                ));
+
+                if (existing.isPresent()
+                        && !existing.get().getId().equals(connection.getId())) {
+
+                    WhatsAppConnectionEntity oldConnection = existing.get();
+
+                    boolean isActive =
+                            oldConnection.getIntegration().isEnabled()
+                            && oldConnection.getStatus() != WhatsAppConnectionStatus.DISCONNECTED
+                            && oldConnection.getStatus() != WhatsAppConnectionStatus.FAILED
+                            && oldConnection.getStatus() != WhatsAppConnectionStatus.CONFLICT;
+
+                    if (isActive) {
+                        return WhatsAppBindingResult.CONFLICT;
+                    }
+
+                    // Освобождаем WhatsApp JID старого подключения.
+                    oldConnection.setWhatsappJid(null);
+                    repository.flush();
+                }
 
                 if (existing.isPresent()
                         && !existing.get().getId().equals(connection.getId())) {
@@ -57,6 +114,8 @@ public class WhatsAppAccountBindingService {
 
                 connection.setWhatsappJid(jid);
                 connection.setStatus(WhatsAppConnectionStatus.CONNECTED);
+
+                connection.setErrorMessage(null);
 
                 repository.flush();
 
@@ -106,21 +165,39 @@ public class WhatsAppAccountBindingService {
     }
 
         
-    public void markConflict(String instanceName) {
+    public void markConflict(
+            String instanceName,
+            String reason
+    ) {
         transactions.executeWithoutResult(tx -> {
             WhatsAppConnectionEntity connection = repository
                     .findByInstanceName(instanceName)
                     .orElseThrow();
 
-            connection.setStatus(
-                    WhatsAppConnectionStatus.CONFLICT
-            );
-
+            connection.setStatus(WhatsAppConnectionStatus.CONFLICT);
+            connection.setErrorMessage(reason);
             connection.getIntegration().setEnabled(false);
 
             repository.flush();
         });
     }
+
+    public String describeConflict(String whatsappJid) {
+    String jid = normalizeJid(whatsappJid);
+
+    return repository.findByWhatsappJid(jid)
+            .map(existing ->
+                    "This WhatsApp account is already connected "
+                    + "to integration #"
+                    + existing.getIntegration().getId()
+                    + ". Disconnect the existing integration "
+                    + "before connecting this account again."
+            )
+            .orElse(
+                    "This WhatsApp account is already in use. "
+                    + "Please check existing integrations."
+            );
+}
 
     
     public void markDisconnected(String instanceName) {
