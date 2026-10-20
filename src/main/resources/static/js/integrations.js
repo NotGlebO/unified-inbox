@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let selected = null;
     let pollTimer = null;
+    let qrTimer = null;
     let generation = 0;
 
     async function request(url, options = {}) {
@@ -57,8 +58,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function stopPolling() {
         generation++;
+
         if (pollTimer) clearTimeout(pollTimer);
+        if (qrTimer) clearTimeout(qrTimer);
+
         pollTimer = null;
+        qrTimer = null;
     }
 
     function setFeedback(message) {
@@ -114,7 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 actions.className = "integration-card-actions";
 
                 const status = document.createElement("span");
-
                 status.className = integration.enabled
                     ? "integration-status-connected"
                     : "integration-status-disabled";
@@ -141,10 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         try {
                             await request(
                                 `${base}/${encodeURIComponent(integration.id)}/disconnect`,
-                                {
-                                    method: "POST",
-                                    headers
-                                }
+                                { method: "POST", headers }
                             );
 
                             await loadConnected();
@@ -183,7 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
         label.textContent = provider.displayName;
 
         selectedService.append(icon, label);
-
         description.textContent = provider.setup.description || "";
 
         instructions.replaceChildren();
@@ -222,15 +222,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         submit.hidden = false;
-
         submit.disabled = !["TOKEN", "QR", "OAUTH"].includes(
             provider.setup.connectionType
         );
 
         submit.textContent = `Connect ${provider.displayName}`;
 
+        
         setFeedback("");
         setupPanel.hidden = false;
+
+        if (provider.setup.connectionType === "QR") {
+            submit.hidden = true;
+            connectSelectedProvider();
+        }
+
     }
 
     function normalizeQr(payload) {
@@ -269,20 +275,24 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
     }
 
-    async function renderResult(result) {
-        setFeedback(result.view?.message || result.status || "");
-        fields.replaceChildren();
+    async function refreshQr(url, expectedGeneration) {
+        const response = await request(url);
 
-        if (result.view?.type === "QR" && result.view.imageUrl) {
-            const response = await request(result.view.imageUrl);
-            const source = normalizeQr(response);
+        if (generation !== expectedGeneration || modal.hidden) {
+            return;
+        }
 
-            if (!source) {
-                throw new Error("QR image is missing in the API response");
-            }
+        const source = normalizeQr(response);
 
-            const img = document.createElement("img");
-            img.src = source;
+        if (!source) {
+            throw new Error("Evolution API did not return a QR image");
+        }
+
+        let img = fields.querySelector('img[data-connection-qr]');
+
+        if (!img) {
+            img = document.createElement("img");
+            img.dataset.connectionQr = "true";
             img.alt = "WhatsApp QR code";
 
             img.style.cssText = [
@@ -298,7 +308,60 @@ document.addEventListener("DOMContentLoaded", () => {
             fields.append(img);
         }
 
+        if (img.src !== source) {
+            img.src = source;
+        }
+    }
+
+    function startQrRefresh(url) {
+        const expectedGeneration = generation;
+
+        async function refresh() {
+            if (generation !== expectedGeneration || modal.hidden) {
+                return;
+            }
+
+            try {
+                await refreshQr(url, expectedGeneration);
+            } catch (error) {
+                if (generation === expectedGeneration) {
+                    setFeedback(`Could not refresh QR: ${error.message}`);
+                }
+            }
+
+            if (generation === expectedGeneration && !modal.hidden) {
+                qrTimer = setTimeout(refresh, 30000);
+            }
+        }
+
+        qrTimer = setTimeout(refresh, 30000);
+    }
+
+    async function renderResult(result) {
+        setFeedback(result.view?.message || result.status || "");
+        fields.replaceChildren();
+
+
+        if (result.view?.type === "QR" && result.view.imageUrl) {
+            setFeedback("Loading QR code...");
+
+            try {
+                await refreshQr(result.view.imageUrl, generation);
+
+                setFeedback(
+                    "Scan the QR code using WhatsApp > Linked devices."
+                );
+            } catch (error) {
+                setFeedback(
+                    `QR is not ready yet: ${error.message}`
+                );
+            }
+
+            startQrRefresh(result.view.imageUrl);
+        }
+
         if (result.status === "CONNECTED") {
+            stopPolling();
             submit.hidden = true;
             await loadConnected();
             return;
@@ -310,6 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
             pollStatus(result.nextAction);
         }
     }
+
 
     function pollStatus(action) {
         const currentGeneration = generation;
@@ -323,11 +387,20 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const state = await request(action.url);
 
+                if (generation !== currentGeneration || modal.hidden) {
+                    return;
+                }
+
                 if (state.status === "CONNECTED") {
                     stopPolling();
-                    setFeedback("Connected successfully");
+
+                    setFeedback("WhatsApp connected successfully!");
                     fields.replaceChildren();
+
                     await loadConnected();
+
+                    // Close modal automatically after successful connection.
+                    closeModal();
                     return;
                 }
 
@@ -335,13 +408,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     state.status
                 )) {
                     stopPolling();
+
                     setFeedback(
-                        `Connection ${state.status.toLowerCase()}. Close and try again.`
+                        `Connection ${state.status.toLowerCase()}. Please try again.`
                     );
+
+                    submit.hidden = false;
+                    submit.disabled = false;
                     return;
                 }
+
+                setFeedback(
+                    "Waiting for WhatsApp QR code to be scanned..."
+                );
+
             } catch (error) {
-                setFeedback(`Waiting for connection: ${error.message}`);
+                setFeedback(
+                    `Checking connection: ${error.message}`
+                );
             }
 
             if (generation === currentGeneration) {
@@ -351,6 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         pollTimer = setTimeout(tick, interval);
     }
+
 
     if (!modal || !openButton) {
         loadConnected();
@@ -417,30 +502,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     selectButton.onclick = () => {
         options.hidden = !options.hidden;
+
         selectButton.setAttribute(
             "aria-expanded",
             String(!options.hidden)
         );
     };
 
-    form.addEventListener("submit", async event => {
-        event.preventDefault();
-
+    
+    async function connectSelectedProvider() {
         if (!selected) return;
 
-        const mode = selected.setup.connectionType;
+        const provider = selected;
+        const mode = provider.setup.connectionType;
 
         if (mode === "OAUTH") {
-            const url = selected.setup.submitUrl?.replace(
+            const url = provider.setup.submitUrl?.replace(
                 "{id}",
                 organizationId
             );
 
-            if (
-                !url ||
-                !url.startsWith("/") ||
-                url.startsWith("//")
-            ) {
+            if (!url || !url.startsWith("/") || url.startsWith("//")) {
                 setFeedback("Invalid OAuth URL");
                 return;
             }
@@ -452,8 +534,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!["TOKEN", "QR"].includes(mode)) return;
 
         stopPolling();
+
+        const currentGeneration = generation;
+
         submit.disabled = true;
-        setFeedback("Connecting...");
+
+        if (mode === "QR") {
+            submit.hidden = true;
+            setFeedback("Generating QR code...");
+        } else {
+            setFeedback("Connecting...");
+        }
 
         const credentials = Object.fromEntries(
             new FormData(form).entries()
@@ -463,7 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const result = await request(
-                `${base}/connect/${encodeURIComponent(selected.type)}`,
+                `${base}/connect/${encodeURIComponent(provider.type)}`,
                 {
                     method: "POST",
                     headers,
@@ -471,13 +562,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             );
 
+            if (
+                generation !== currentGeneration ||
+                modal.hidden ||
+                selected !== provider
+            ) {
+                return;
+            }
+
             await renderResult(result);
+
         } catch (error) {
+            if (
+                generation !== currentGeneration ||
+                modal.hidden ||
+                selected !== provider
+            ) {
+                return;
+            }
+
             setFeedback(error.message);
             submit.disabled = false;
             submit.hidden = false;
+            submit.textContent = "Retry connection";
         }
+    }
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        await connectSelectedProvider();
     });
+
 
     loadConnected();
 });
