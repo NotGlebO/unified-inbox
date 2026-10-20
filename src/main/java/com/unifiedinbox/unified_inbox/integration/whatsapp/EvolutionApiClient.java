@@ -180,5 +180,23 @@ public class EvolutionApiClient {
                 .body(String.class);
     }
 
+    public String sendText(
+            String instanceName,
+            String phoneNumber,
+            String text
+    ) {
+    Map<String, Object> request = Map.of(
+            "number", phoneNumber,
+            "text", text
+    );
+
+    return restClient.post()
+            .uri("/message/sendText/{instanceName}", instanceName)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(request)
+            .retrieve()
+            .body(String.class);
+    }
+
 
 }

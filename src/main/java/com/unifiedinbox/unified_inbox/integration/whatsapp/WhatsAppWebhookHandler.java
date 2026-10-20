@@ -16,9 +16,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
 
+import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
+import com.unifiedinbox.unified_inbox.core.dto.UnifiedMessage;
+import com.unifiedinbox.unified_inbox.service.MessageService;
+import java.time.Instant;
+
 @Component
 public class WhatsAppWebhookHandler implements WebhookHandler {
 
+    private final MessageService messageService;
     private final ObjectMapper objectMapper;
     private final WhatsAppConnectionRepository connectionRepository;
     private final EvolutionApiClient evolutionApiClient;
@@ -30,13 +36,15 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
             WhatsAppConnectionRepository connectionRepository,
             EvolutionApiClient evolutionApiClient,
             WhatsAppAccountBindingService bindingService,
-            @Value("${evolution.webhook.secret}") String webhookSecret
+            @Value("${evolution.webhook.secret}") String webhookSecret,
+            MessageService messageService
     ) {
         this.objectMapper = objectMapper;
         this.connectionRepository = connectionRepository;
         this.evolutionApiClient = evolutionApiClient;
         this.bindingService = bindingService;
         this.webhookSecret = webhookSecret;
+        this.messageService = messageService;
     }
 
     @Override
@@ -81,6 +89,10 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
         }
 
         String event = payload.path("event").asString("");
+
+        if ("messages.upsert".equalsIgnoreCase(event)) {
+            return handleIncomingMessage(payload, instanceName);
+        }
 
         if (!"connection.update".equalsIgnoreCase(event)) {
             return ResponseEntity.ok().build();
@@ -138,5 +150,90 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
         }
 
         return ResponseEntity.ok().build();
+    }
+
+    private ResponseEntity<Void> handleIncomingMessage(
+            JsonNode payload,
+            String instanceName
+    ) {
+        WhatsAppConnectionEntity connection = connectionRepository
+                .findByInstanceName(instanceName)
+                .orElse(null);
+
+        if (connection == null
+                || connection.getStatus() != WhatsAppConnectionStatus.CONNECTED
+                || !connection.getIntegration().isEnabled()) {
+            return ResponseEntity.ok().build();
+        }
+
+        JsonNode data = payload.path("data");
+
+        // Evolution API may deliver one message or an array.
+        if (data.isArray()) {
+            for (JsonNode item : data) {
+                saveWhatsAppMessage(connection, item);
+            }
+        } else if (data.isObject()) {
+            saveWhatsAppMessage(connection, data);
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    private void saveWhatsAppMessage(
+            WhatsAppConnectionEntity connection,
+            JsonNode data
+    ) {
+        JsonNode key = data.path("key");
+
+        if (key.path("fromMe").asBoolean(false)) {
+            return;
+        }
+
+        String chatId = key.path("remoteJid").asString("");
+        String messageId = key.path("id").asString("");
+
+        if (chatId.isBlank()
+                || messageId.isBlank()
+                || chatId.endsWith("@g.us")
+                || "status@broadcast".equals(chatId)) {
+            return;
+        }
+
+        JsonNode content = data.path("message");
+
+        String text = content.path("conversation").asString("");
+
+        if (text.isBlank()) {
+            text = content.path("extendedTextMessage")
+                    .path("text")
+                    .asString("");
+        }
+
+        // First version supports text messages only.
+        if (text.isBlank()) {
+            return;
+        }
+
+        String senderName = data.path("pushName").asString("");
+
+        if (senderName.isBlank()) {
+            senderName = chatId.split("@")[0];
+        }
+
+        long timestamp = data.path("messageTimestamp")
+                .asLong(Instant.now().getEpochSecond());
+
+        UnifiedMessage message = new UnifiedMessage(
+                connection.getIntegration().getId(),
+                chatId,
+                messageId,
+                senderName,
+                text,
+                Instant.ofEpochSecond(timestamp),
+                MessageDirection.INCOMING
+        );
+
+        messageService.saveIncomingMessage(message);
     }
 }
