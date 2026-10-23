@@ -4,6 +4,24 @@ A Java/Spring Boot web application for managing customer conversations from mult
 
 > **Project status:** Portfolio project under active development. This is not a production-ready hosted service. Integrations require your own provider accounts and credentials.
 
+## Quick links
+
+Jump directly to the services and documentation used to set up Unified Inbox:
+
+| Service | Open | What you need |
+| --- | --- | --- |
+| Java 21 | [Eclipse Temurin downloads](https://adoptium.net/temurin/releases/?version=21) | Install JDK 21 |
+| Docker | [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Run local containers |
+| PostgreSQL | [PostgreSQL downloads](https://www.postgresql.org/download/) | Application database (or use Docker) |
+| Google Cloud | [Google Cloud Console](https://console.cloud.google.com/) | Create OAuth credentials |
+| Gmail API | [Gmail API documentation](https://developers.google.com/workspace/gmail/api/quickstart/java) | Enable/configure Gmail access |
+| Telegram | [BotFather](https://t.me/BotFather) | Create a bot and obtain its token |
+| Backblaze B2 | [Backblaze B2 Console](https://secure.backblaze.com/b2_buckets.htm) | Create a bucket and application key |
+| Evolution API | [Evolution API documentation](https://doc.evolution-api.com/) | Configure WhatsApp connectivity |
+| ngrok | [ngrok dashboard](https://dashboard.ngrok.com/) | Set up a public HTTPS tunnel for local webhooks |
+
+For setup instructions in this README, go to [PostgreSQL](#2-start-postgresql), [application secrets](#3-configure-application-secrets), [variable reference](#4-environment-variable-reference), or [integrations](#5-set-up-integrations).
+
 ## Features
 
 - Organization-based inbox with conversations and messages.
@@ -106,10 +124,6 @@ Activate the profile when launching:
 
 **Important:** `application-local.properties` is not loaded unless the `local` profile is active. Keep existing encryption keys for existing encrypted data; changing the encryption key may prevent decryption of previously saved credentials.
 
-### What is `.env.example`?
-
-The root `.env.example` is a **reference checklist** for environment variables. Copying it to `.env` does not automatically load it into Spring Boot. Use Option A or B above, or explicitly configure your deployment environment to load an `.env` file.
-
 ## 4. Environment variable reference
 
 | Variable | Purpose | Required / default |
@@ -138,29 +152,29 @@ The root `.env.example` is a **reference checklist** for environment variables. 
 
 ### Backblaze B2
 
-1. Create a private B2 bucket in your chosen region.
+1. Open the [Backblaze B2 Console](https://secure.backblaze.com/b2_buckets.htm) and create a private B2 bucket in your chosen region.
 2. Create a restricted application key with read/write permissions for that bucket.
 3. Set `B2_ENDPOINT`, `B2_REGION`, `B2_BUCKET`, `B2_ACCESS_KEY`, and `B2_SECRET_KEY` to match your account.
 4. Start the app and verify that a newly received attachment can be uploaded and subsequently opened.
 
 ### Google / Gmail
 
-1. Create a Google Cloud project and configure its OAuth consent screen.
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) and create a project; configure its OAuth consent screen.
 2. Create an OAuth 2.0 web client and supply `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 3. Configure the authorized redirect URI to match Spring Security's callback for your deployment, typically `{baseUrl}/login/oauth2/code/google`; confirm against your security configuration.
-4. Enable the Gmail API and configure the necessary scopes/consent/test users according to Google's current policies.
+4. Enable the [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com) and configure the necessary scopes/consent/test users according to Google's current policies.
 5. Connect Gmail through the app's integrations interface.
 
 ### Telegram
 
-1. Create your own Telegram bot using BotFather.
-2. Make the app reachable over HTTPS (e.g., with a development tunnel) and set `APP_PUBLIC_URL`.
+1. Open [BotFather](https://t.me/BotFather) in Telegram and create your own bot.
+2. Make the app reachable over HTTPS (for local development, see [ngrok](https://dashboard.ngrok.com/)) and set `APP_PUBLIC_URL`.
 3. Use the application's Telegram integration flow to register/connect the bot and configure its webhook.
 4. Send a message to the bot and confirm it appears in the inbox.
 
 ### WhatsApp / Evolution API
 
-1. Run a compatible Evolution API instance separately, along with its required database and Redis configuration.
+1. Follow the [Evolution API documentation](https://doc.evolution-api.com/) to run a compatible instance with its database and Redis configuration.
 2. Set `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_WEBHOOK_SECRET`, and `EVOLUTION_WEBHOOK_URL`.
 3. Make sure Evolution API can reach the webhook URL. `host.docker.internal` is appropriate only for certain local Docker Desktop setups; use a reachable public URL or correct internal hostname elsewhere.
 4. Open the app's WhatsApp integration and scan the QR code using your test WhatsApp account.
