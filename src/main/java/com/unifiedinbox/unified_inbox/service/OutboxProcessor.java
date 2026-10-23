@@ -6,7 +6,6 @@ import com.unifiedinbox.unified_inbox.core.adapter.MessageSendException;
 import com.unifiedinbox.unified_inbox.core.dto.OutgoingMessageData;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 
 @Service
 public class OutboxProcessor {

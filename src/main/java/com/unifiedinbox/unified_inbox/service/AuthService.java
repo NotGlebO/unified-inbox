@@ -20,7 +20,7 @@ public class AuthService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
-
+ 
     @Transactional
     public UserEntity register(String username, String password) {
 

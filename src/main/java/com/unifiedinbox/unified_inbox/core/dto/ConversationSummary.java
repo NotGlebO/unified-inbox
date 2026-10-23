@@ -12,6 +12,7 @@ public record ConversationSummary(
         String integrationColor,
         String integrationDisplayName,
         String customerName,
-        Instant updatedAt
+        Instant updatedAt,
+        long unreadCount
 ) {
 }

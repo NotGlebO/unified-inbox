@@ -321,8 +321,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function startQrRefresh(url) {
+  
+    function startQrRefresh(url, intervalMs = 15000) {
         const expectedGeneration = generation;
+        const interval = Math.max(5000, intervalMs);
 
         async function refresh() {
             if (generation !== expectedGeneration || modal.hidden) {
@@ -333,17 +335,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 await refreshQr(url, expectedGeneration);
             } catch (error) {
                 if (generation === expectedGeneration) {
-                    setFeedback(`Could not refresh QR: ${error.message}`);
+                    setFeedback(
+                        `Could not refresh QR: ${error.message}`
+                    );
                 }
             }
 
             if (generation === expectedGeneration && !modal.hidden) {
-                qrTimer = setTimeout(refresh, 30000);
+                qrTimer = setTimeout(refresh, interval);
             }
         }
 
-        qrTimer = setTimeout(refresh, 30000);
+        qrTimer = setTimeout(refresh, interval);
     }
+
 
     async function renderResult(result) {
         setFeedback(result.view?.message || result.status || "");
@@ -383,6 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+
     function pollStatus(action) {
         const currentGeneration = generation;
         const interval = Math.max(1000, action.intervalMs || 2000);
@@ -401,20 +407,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (state.status === "CONNECTED") {
                     stopPolling();
-
-                    setFeedback("WhatsApp connected successfully!");
+                    setFeedback("Integration connected successfully!");
                     fields.replaceChildren();
 
                     await loadConnected();
-
-                    // Close modal automatically after successful connection.
                     closeModal();
                     return;
                 }
 
-                if (["FAILED", "CONFLICT", "DISCONNECTED"].includes(
-                    state.status
-                )) {
+                if (["FAILED", "CONFLICT"].includes(state.status)) {
                     stopPolling();
 
                     setFeedback(
@@ -424,20 +425,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     submit.hidden = false;
                     submit.disabled = false;
+                    submit.textContent = "Retry connection";
                     return;
                 }
 
-                setFeedback(
-                    "Waiting for WhatsApp QR code to be scanned..."
-                );
+                if (state.status === "DISCONNECTED") {
+                    // Do not stop QR refresh immediately.
+                    // The provider may still be reconnecting.
+                    setFeedback("Waiting for connection...");
+                } else {
+                    setFeedback(
+                        state.view?.message ||
+                        "Waiting for QR code to be scanned..."
+                    );
+                }
 
             } catch (error) {
-                setFeedback(
-                    `Checking connection: ${error.message}`
-                );
+                if (generation === currentGeneration) {
+                    setFeedback(
+                        `Checking connection: ${error.message}`
+                    );
+                }
             }
 
-            if (generation === currentGeneration) {
+            if (generation === currentGeneration && !modal.hidden) {
                 pollTimer = setTimeout(tick, interval);
             }
         }

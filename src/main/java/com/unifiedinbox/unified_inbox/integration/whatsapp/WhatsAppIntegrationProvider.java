@@ -36,7 +36,7 @@ public class WhatsAppIntegrationProvider
                 "/organizations/{id}/integrations/whatsapp",
                 List.of(),
                 List.of(
-                        "Click Connect WhatsApp.",
+                        "Click Connect WhatsApp/WhatsApp Business.",
                         "Open WhatsApp on your phone.",
                         "Go to Linked devices.",
                         "Scan the QR code displayed on this page."

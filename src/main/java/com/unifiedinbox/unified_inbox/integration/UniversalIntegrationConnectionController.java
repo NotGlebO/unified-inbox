@@ -87,6 +87,7 @@ public class UniversalIntegrationConnectionController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
 
+     
         if ("WHATSAPP".equals(integration.getType())) {
 
             var connection = whatsappConnections
@@ -97,10 +98,10 @@ public class UniversalIntegrationConnectionController {
 
             String status = connection.getStatus().name();
 
-            // Check Evolution API only for non-terminal states.
+            // Verify the actual connection state in Evolution API.
             if (integration.isEnabled()
-                    && !status.equals("FAILED")
-                    && !status.equals("CONFLICT")) {
+                    && !"FAILED".equals(status)
+                    && !"CONFLICT".equals(status)) {
 
                 try {
                     String response = evolution.getConnectionState(
@@ -122,12 +123,13 @@ public class UniversalIntegrationConnectionController {
                     }
 
                 } catch (Exception exception) {
-                    // Cannot verify the current connection state.
+                    // Keep the connection pending if Evolution API
+                    // is temporarily unavailable.
                     status = "WAITING_FOR_QR";
                 }
             }
 
-            // Preserve error states even if integration was disabled.
+            // Preserve terminal errors and disabled integrations.
             if (!integration.isEnabled()
                     && !"CONFLICT".equals(status)
                     && !"FAILED".equals(status)) {
@@ -148,10 +150,46 @@ public class UniversalIntegrationConnectionController {
                         : "Failed to connect WhatsApp.";
             }
 
+            // Return QR configuration while waiting for a scan.
+            if ("WAITING_FOR_QR".equals(status)) {
+
+                String qrUrl = "/api/organizations/"
+                        + organizationId
+                        + "/whatsapp/"
+                        + integrationId
+                        + "/qr";
+
+                String statusUrl = "/api/organizations/"
+                        + organizationId
+                        + "/integrations/"
+                        + integrationId
+                        + "/connection-status";
+
+                return new IntegrationConnectionResult(
+                        integrationId,
+                        status,
+                        new IntegrationView(
+                                "QR",
+                                qrUrl,
+                                "Scan this QR code in WhatsApp linked devices."
+                        ),
+                        new IntegrationNextAction(
+                                "POLL",
+                                statusUrl,
+                                2000
+                        )
+                );
+            }
+
+            // All other states.
             return new IntegrationConnectionResult(
                     integrationId,
                     status,
-                    new IntegrationView("MESSAGE", null, message),
+                    new IntegrationView(
+                            "MESSAGE",
+                            null,
+                            message
+                    ),
                     null
             );
         }

@@ -74,42 +74,60 @@ let isSending = false;
         return response.json();
     }
 
-    async function loadConversations() {
-        setConnectionStatus("Loading conversations...", false);
+  
+  
+    let conversationsLoading = false;
+    let lastConversationsSignature = null;
+
+    async function loadConversations(silent = false) {
+        if (conversationsLoading) return;
+
+        conversationsLoading = true;
+
+        if (!silent) {
+            setConnectionStatus("Loading conversations...", false);
+        }
 
         try {
-            
             const data = await fetchJson(
                 `/api/organizations/${encodeURIComponent(organizationId)}/conversations`,
                 true
             );
 
-
             if (!Array.isArray(data)) {
                 throw new Error("Invalid conversations response");
             }
 
-            conversations = data;
+            const signature = JSON.stringify(data);
 
-            renderConversations();
+            if (signature !== lastConversationsSignature) {
+                lastConversationsSignature = signature;
+                conversations = data;
+                renderConversations();
+            }
 
             setConnectionStatus("Inbox connected", false);
 
         } catch (error) {
             console.error("Failed to load conversations:", error);
 
-            conversations = [];
-            renderConversations();
-
-            showListEmpty(
-                "Unable to load conversations",
-                "Please refresh the page and try again.",
-                "!"
-            );
+            // Keep the existing list if a background request fails.
+            if (!silent) {
+                showListEmpty(
+                    "Unable to load conversations",
+                    "Please refresh the page and try again.",
+                    "!"
+                );
+            }
 
             setConnectionStatus("Connection error", true);
+
+        } finally {
+            conversationsLoading = false;
         }
     }
+
+
     
     async function fetchJson(url, redirectOnAccessLost = false) {
 
@@ -281,8 +299,13 @@ let isSending = false;
                 activeFilter === "ALL" ||
                 type === activeFilter;
 
+            
             return matchesSearch && matchesFilter;
-        });
+            }).sort((a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime()
+            );
+
 
         if (filtered.length === 0) {
 
@@ -359,6 +382,19 @@ let isSending = false;
 
         platform.append(icon, label);
 
+        
+        const unreadCount = Number(conversation.unreadCount) || 0;
+
+        if (unreadCount > 0) {
+            const badge = document.createElement("span");
+            badge.className = "conversation-unread-badge";
+            badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+            badge.title = `${unreadCount} unread messages`;
+
+            platform.appendChild(badge);
+        }
+
+
         info.append(nameRow, platform);
         button.append(avatar, info);
 
@@ -424,7 +460,19 @@ let isSending = false;
 
         renderConversations();
 
-        loadMessages(conversation.id);
+        
+        loadMessages(conversation.id).then(async () => {
+            if (selectedConversationId === conversation.id) {
+                try {
+                    await markConversationAsRead(conversation.id);
+                    await loadConversations(true);
+                } catch (error) {
+                    console.error("Unable to mark conversation as read:", error);
+                }
+            }
+        });
+
+
     }
 
     function createAttachmentElement(attachment) {
@@ -680,4 +728,48 @@ let isSending = false;
             loadMessages(selectedConversationId, true);
         }
     }, 3000);
-});
+
+    
+    setInterval(() => {
+        if (!document.hidden) {
+            loadConversations(true);
+        }
+    }, 3000);
+
+    
+    setInterval(() => {
+        if (!document.hidden) {
+            loadConversations(true);
+        }
+    }, 3000);
+
+
+    
+    async function markConversationAsRead(conversationId) {
+        const response = await fetch(
+            `/api/conversations/${encodeURIComponent(conversationId)}/read`,
+            {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    [csrfHeader]: csrfToken
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Mark as read failed: ${response.status}`);
+        }
+
+        const conversation = conversations.find(
+            item => item.id === conversationId
+        );
+
+        if (conversation) {
+            conversation.unreadCount = 0;
+            renderConversations();
+        }
+    }
+
+
+}); 
