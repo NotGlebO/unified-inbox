@@ -1,3 +1,4 @@
+
 package com.unifiedinbox.unified_inbox.core.dto;
 
 import java.time.Instant;
@@ -10,5 +11,6 @@ public record MessageDetails(
         Instant sentAt,
         MessageDirection direction,
         MessageStatus status,
+        MessageSource source,
         List<AttachmentDetails> attachments
 ) {}

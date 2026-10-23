@@ -740,3 +740,12 @@
     line-height: 1;
     flex-shrink: 0;
 }
+
+
+
+.message-source-icon {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 13px;
+    vertical-align: middle;
+}

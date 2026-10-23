@@ -9,6 +9,7 @@ import com.unifiedinbox.unified_inbox.repository.IntegrationRepository;
 import com.unifiedinbox.unified_inbox.repository.MessageRepository;
 import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
 import java.time.Instant;
+import com.unifiedinbox.unified_inbox.core.dto.MessageSource;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
 import com.unifiedinbox.unified_inbox.entity.OutboxEntity;
 import com.unifiedinbox.unified_inbox.repository.OutboxRepository;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+
 import com.unifiedinbox.unified_inbox.core.dto.AttachmentDetails;
 import com.unifiedinbox.unified_inbox.repository.MessageAttachmentRepository;
 import java.util.Map;
@@ -52,7 +58,7 @@ public class MessageService {
     }
 
     @Transactional
-    public MessageEntity saveIncomingMessage(UnifiedMessage message) {
+    public MessageEntity saveExternalMessage(UnifiedMessage message) {
 
         // 1. Проверяем, существует ли интеграция
         IntegrationEntity integration = integrationRepository
@@ -103,8 +109,22 @@ public class MessageService {
                 message.direction()
         );
 
+        
+        if (message.direction() == MessageDirection.OUTGOING) {
+            entity.setOrigin(MessageSource.EXTERNAL_APP);
+            entity.setStatus(MessageStatus.SENT);
+        } else {
+            entity.setOrigin(MessageSource.EXTERNAL_APP);
+            entity.setStatus(MessageStatus.RECEIVED);
+        }
+
+
         // 6. Сохраняем сообщение
         MessageEntity saved = messageRepository.save(entity);
+
+        
+
+
 
         // 7. Обновляем время активности переписки
         conversation.updateLastActivity();
@@ -114,6 +134,7 @@ public class MessageService {
 
     @Transactional(readOnly = true)
     public List<MessageDetails> getMessages(Long conversationId) {
+        message.getOrigin(),
 
         // 1. Находим переписку
         ConversationEntity conversation = conversationRepository
@@ -230,6 +251,7 @@ if (!messageIds.isEmpty()) {
             );
         }
 
+        
         MessageEntity message = new MessageEntity(
                 conversation,
                 null,
@@ -239,7 +261,9 @@ if (!messageIds.isEmpty()) {
                 MessageDirection.OUTGOING
         );
 
+        message.setOrigin(MessageSource.WEB_APP);
         message.setStatus(MessageStatus.PENDING);
+        ;
 
         MessageEntity saved = messageRepository.save(message);
 
@@ -249,5 +273,7 @@ if (!messageIds.isEmpty()) {
 
         return saved;
     }
+
+
 
 }

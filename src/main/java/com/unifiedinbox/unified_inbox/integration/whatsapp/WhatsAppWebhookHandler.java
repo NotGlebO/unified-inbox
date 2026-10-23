@@ -202,15 +202,14 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
         return ResponseEntity.ok().build();
     }
 
+
     private void saveWhatsAppMessage(
             WhatsAppConnectionEntity connection,
             JsonNode data
     ) {
         JsonNode key = data.path("key");
 
-        if (key.path("fromMe").asBoolean(false)) {
-            return;
-        }
+        boolean fromMe = key.path("fromMe").asBoolean(false);
 
         String chatId = key.path("remoteJid").asString("");
         String messageId = key.path("id").asString("");
@@ -232,19 +231,29 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
                     .asString("");
         }
 
-        // First version supports text messages only.
+        // Currently only text messages are supported.
         if (text.isBlank()) {
             return;
         }
 
-        String senderName = data.path("pushName").asString("");
+        String senderName;
 
-        if (senderName.isBlank()) {
-            senderName = chatId.split("@")[0];
+        if (fromMe) {
+            senderName = "WhatsApp";
+        } else {
+            senderName = data.path("pushName").asString("");
+
+            if (senderName.isBlank()) {
+                senderName = chatId.split("@")[0];
+            }
         }
 
         long timestamp = data.path("messageTimestamp")
                 .asLong(Instant.now().getEpochSecond());
+
+        MessageDirection direction = fromMe
+                ? MessageDirection.OUTGOING
+                : MessageDirection.INCOMING;
 
         UnifiedMessage message = new UnifiedMessage(
                 connection.getIntegration().getId(),
@@ -253,9 +262,10 @@ public class WhatsAppWebhookHandler implements WebhookHandler {
                 senderName,
                 text,
                 Instant.ofEpochSecond(timestamp),
-                MessageDirection.INCOMING
+                direction
         );
 
-        messageService.saveIncomingMessage(message);
+        messageService.saveExternalMessage(message);
     }
+
 }

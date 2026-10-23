@@ -3,6 +3,8 @@ package com.unifiedinbox.unified_inbox.entity;
 import com.unifiedinbox.unified_inbox.core.dto.MessageDirection;
 import jakarta.persistence.*;
 import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
+import com.unifiedinbox.unified_inbox.core.dto.MessageSource;
+
 
 import java.time.Instant;
 
@@ -101,4 +103,22 @@ public class MessageEntity {
     public void setExternalMessageId(String externalMessageId) {
         this.externalMessageId = externalMessageId;
     }
+
+    
+  
+    @Enumerated(EnumType.STRING)
+    @Column(name = "origin", nullable = false)
+    private MessageSource origin = MessageSource.UNKNOWN;
+
+
+    
+    public MessageSource getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(MessageSource origin) {
+        this.origin = origin;
+    }
+
+
 }

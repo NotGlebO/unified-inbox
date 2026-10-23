@@ -565,6 +565,24 @@ let isSending = false;
             time.textContent = formatTime(message.sentAt);
 
             
+            if (
+                message.direction === "OUTGOING" &&
+                message.source === "EXTERNAL"
+            ) {
+                const sourceIcon = document.createElement("span");
+                sourceIcon.className = "message-source-icon";
+                sourceIcon.textContent = "📱";
+                sourceIcon.title = "Sent outside Unified Inbox";
+                sourceIcon.setAttribute(
+                    "aria-label",
+                    "Sent outside Unified Inbox"
+                );
+
+                time.prepend(sourceIcon);
+            }
+
+
+            
             bubble.appendChild(sender);
 
             if (message.text) {
