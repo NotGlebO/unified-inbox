@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -45,6 +46,7 @@ public class WhatsAppIntegrationController {
                 ));
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/{integrationId}")
     public ConnectionResponse getConnection(
             @PathVariable Long organizationId,
@@ -76,6 +78,7 @@ public class WhatsAppIntegrationController {
         );
     }
 
+    @Transactional(readOnly = true)
     @GetMapping
     public List<ConnectionResponse> getConnections(
             @PathVariable Long organizationId
@@ -98,7 +101,7 @@ public class WhatsAppIntegrationController {
     ) {
     }
 
-    
+    @Transactional(readOnly = true)
     @GetMapping(
             value = "/{integrationId}/qr",
             produces = MediaType.APPLICATION_JSON_VALUE

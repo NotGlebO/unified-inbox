@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class UniversalIntegrationConnectionController {
         return handler.connect(organizationId, credentials);
     }
 
-
+    @Transactional(readOnly = true)
     @GetMapping("/{integrationId}/connection-status")
     public IntegrationConnectionResult status(
             @PathVariable Long organizationId,

@@ -145,7 +145,7 @@ public class TelegramWebhookHandler implements WebhookHandler {
             );
 
             MessageEntity savedMessage =
-            messageService.saveIncomingMessage(unifiedMessage);
+                messageService.saveExternalMessage(unifiedMessage);
 
             if (savedMessage != null) {
 

@@ -111,10 +111,10 @@ public class MessageService {
 
         
         if (message.direction() == MessageDirection.OUTGOING) {
-            entity.setOrigin(MessageSource.EXTERNAL_APP);
+            entity.setOrigin(MessageSource.EXTERNAL);
             entity.setStatus(MessageStatus.SENT);
         } else {
-            entity.setOrigin(MessageSource.EXTERNAL_APP);
+            entity.setOrigin(MessageSource.EXTERNAL);
             entity.setStatus(MessageStatus.RECEIVED);
         }
 
@@ -134,7 +134,7 @@ public class MessageService {
 
     @Transactional(readOnly = true)
     public List<MessageDetails> getMessages(Long conversationId) {
-        message.getOrigin(),
+        
 
         // 1. Находим переписку
         ConversationEntity conversation = conversationRepository
@@ -200,6 +200,7 @@ if (!messageIds.isEmpty()) {
                                 message.getSentAt(),
                                 message.getDirection(),
                                 message.getStatus(),
+                                message.getOrigin(),
                                 attachmentsByMessage.getOrDefault(
                                         message.getId(),
                                         List.of()
