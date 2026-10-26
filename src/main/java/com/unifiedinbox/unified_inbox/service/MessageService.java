@@ -20,9 +20,7 @@ import com.unifiedinbox.unified_inbox.core.dto.MessageStatus;
 import com.unifiedinbox.unified_inbox.entity.OutboxEntity;
 import com.unifiedinbox.unified_inbox.repository.OutboxRepository;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+
 
 import com.unifiedinbox.unified_inbox.core.dto.AttachmentDetails;
 import com.unifiedinbox.unified_inbox.repository.MessageAttachmentRepository;

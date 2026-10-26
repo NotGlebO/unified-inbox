@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.unifiedinbox.unified_inbox.integration.whatsapp.WhatsAppConnectionEntity;
 
 import java.util.List;
 
