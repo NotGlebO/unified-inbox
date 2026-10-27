@@ -304,5 +304,170 @@ public class GmailApiClient {
         }
     }
 
+    
+    public JsonNode getHistory(
+            String accessToken,
+            String startHistoryId,
+            String pageToken
+    ) {
+        if (startHistoryId == null || startHistoryId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Gmail startHistoryId is required."
+            );
+        }
+
+        StringBuilder url = new StringBuilder(
+                GMAIL_API_BASE + "/history"
+        );
+
+        url.append("?startHistoryId=")
+                .append(URLEncoder.encode(
+                        startHistoryId,
+                        StandardCharsets.UTF_8
+                ));
+
+        url.append("&historyTypes=messageAdded");
+        url.append("&maxResults=100");
+
+        if (pageToken != null && !pageToken.isBlank()) {
+            url.append("&pageToken=")
+                    .append(URLEncoder.encode(
+                            pageToken,
+                            StandardCharsets.UTF_8
+                    ));
+        }
+
+        return executeGet(accessToken, url.toString());
+    }
+
+    public JsonNode getMessage(
+            String accessToken,
+            String messageId
+    ) {
+        if (messageId == null || messageId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Gmail message ID is required."
+            );
+        }
+
+        String url = GMAIL_API_BASE
+                + "/messages/"
+                + URLEncoder.encode(
+                        messageId,
+                        StandardCharsets.UTF_8
+                )
+                + "?format=full";
+
+        return executeGet(accessToken, url);
+    }
+
+    private JsonNode executeGet(
+            String accessToken,
+            String url
+    ) {
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Gmail access token is required."
+            );
+        }
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(20))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException(
+                        "Gmail API request failed: HTTP "
+                                + response.statusCode()
+                                + " - "
+                                + extractErrorDescription(response.body())
+                );
+            }
+
+            return objectMapper.readTree(response.body());
+
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+
+            throw new IllegalStateException(
+                    "Gmail API request was interrupted.",
+                    exception
+            );
+
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException(
+                    "Could not communicate with Gmail API.",
+                    exception
+            );
+        }
+    }
+
+
+    public JsonNode watchMailbox(
+        String accessToken,
+        String topicName
+) {
+    if (topicName == null || topicName.isBlank()) {
+        throw new IllegalStateException(
+                "Gmail Pub/Sub topic is not configured."
+        );
+    }
+
+    try {
+        String body = objectMapper.writeValueAsString(
+                java.util.Map.of(
+                        "topicName", topicName,
+                        "labelIds", java.util.List.of("INBOX"),
+                        "labelFilterBehavior", "INCLUDE"
+                )
+        );
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(GMAIL_API_BASE + "/watch"))
+                .timeout(Duration.ofSeconds(20))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+        );
+
+        if (response.statusCode() != 200) {
+            throw new IllegalStateException(
+                    "Gmail watch failed: HTTP "
+                            + response.statusCode()
+                            + " - "
+                            + extractErrorDescription(response.body())
+            );
+        }
+
+        return objectMapper.readTree(response.body());
+
+    } catch (InterruptedException exception) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+                "Gmail watch request interrupted.",
+                exception
+        );
+    } catch (java.io.IOException exception) {
+        throw new IllegalStateException(
+                "Could not register Gmail watch.",
+                exception
+        );
+    }
+}
 
 }
