@@ -123,6 +123,12 @@ public class GmailIntegrationService {
                 encryptedRefreshToken
         );
 
+        String initialHistoryId = gmailApiClient.getCurrentHistoryId(
+                tokenResponse.accessToken()
+        );
+
+        connection.setHistoryId(initialHistoryId);
+
         connectionRepository.save(connection);
 
         return integration.getId();

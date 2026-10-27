@@ -412,62 +412,21 @@ public class GmailApiClient {
         }
     }
 
-
-    public JsonNode watchMailbox(
-        String accessToken,
-        String topicName
-) {
-    if (topicName == null || topicName.isBlank()) {
-        throw new IllegalStateException(
-                "Gmail Pub/Sub topic is not configured."
-        );
-    }
-
-    try {
-        String body = objectMapper.writeValueAsString(
-                java.util.Map.of(
-                        "topicName", topicName,
-                        "labelIds", java.util.List.of("INBOX"),
-                        "labelFilterBehavior", "INCLUDE"
-                )
+    public String getCurrentHistoryId(String accessToken) {
+        JsonNode profile = executeGet(
+                accessToken,
+                GMAIL_API_BASE + "/profile"
         );
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(GMAIL_API_BASE + "/watch"))
-                .timeout(Duration.ofSeconds(20))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
+        String historyId = profile.path("historyId").asString("");
 
-        HttpResponse<String> response = httpClient.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
-
-        if (response.statusCode() != 200) {
+        if (historyId.isBlank()) {
             throw new IllegalStateException(
-                    "Gmail watch failed: HTTP "
-                            + response.statusCode()
-                            + " - "
-                            + extractErrorDescription(response.body())
+                    "Gmail profile returned no historyId."
             );
         }
 
-        return objectMapper.readTree(response.body());
-
-    } catch (InterruptedException exception) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(
-                "Gmail watch request interrupted.",
-                exception
-        );
-    } catch (java.io.IOException exception) {
-        throw new IllegalStateException(
-                "Could not register Gmail watch.",
-                exception
-        );
+        return historyId;
     }
-}
-
+ 
 }
