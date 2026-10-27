@@ -120,5 +120,16 @@ public class MessageEntity {
         this.origin = origin;
     }
 
+    @Column(name = "locally_deleted_at")
+    private Instant locallyDeletedAt;
+
+    public Instant getLocallyDeletedAt() {
+        return locallyDeletedAt;
+    }
+
+    public void deleteLocally() {
+        this.locallyDeletedAt = Instant.now();
+    }
+
 
 }

@@ -9,14 +9,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
+import org.springframework.stereotype.Controller;
 
-@RestController
+@Controller
 @RequestMapping("/api/integrations/gmail")
 public class GmailIntegrationController {
 
@@ -49,6 +51,7 @@ public class GmailIntegrationController {
     }
 
     @GetMapping("/authorize")
+    @ResponseBody
     public ResponseEntity<Void> authorize(
             @RequestParam Long organizationId,
             HttpServletRequest request
@@ -97,11 +100,12 @@ public class GmailIntegrationController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<Void> handleCallback(
+    public String handleCallback(
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String error,
-            HttpServletRequest request
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
     ) {
         HttpSession session = request.getSession(false);
 
@@ -131,12 +135,27 @@ public class GmailIntegrationController {
         session.removeAttribute(OAUTH_STATE);
         session.removeAttribute(OAUTH_ORGANIZATION);
 
+        
         if (error != null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Gmail authorization failed: " + error
-            );
+
+            if ("access_denied".equals(error)) {
+                redirectAttributes.addFlashAttribute(
+                        "error",
+                        "Gmail connection was cancelled. "
+                                + "No account was connected."
+                );
+            } else {
+                redirectAttributes.addFlashAttribute(
+                        "error",
+                        "Gmail authorization failed. Please try again."
+                );
+            }
+
+            return "redirect:/organizations/"
+                    + organizationId
+                    + "/settings";
         }
+
 
         if (code == null || code.isBlank()) {
             throw new ResponseStatusException(
@@ -148,14 +167,42 @@ public class GmailIntegrationController {
         // Recheck authorization before connecting.
         organizationService.requireOwner(organizationId);
 
+        
+        try {
         gmailService.connect(organizationId, code);
 
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(
-                        "/organizations/" + organizationId
-                                + "/settings?registered=true"
-                ))
-                .build();
+        redirectAttributes.addFlashAttribute(
+                "success",
+                "Gmail account connected successfully."
+        );
+
+        } catch (ResponseStatusException exception) {
+
+        if (exception.getStatusCode().value() != 403
+                || !exception.getReason().equals(
+                        "Required Gmail permissions were not granted. "
+                        + "Please allow Gmail access and try again."
+                )) {
+                throw exception;
+        }
+
+        redirectAttributes.addFlashAttribute(
+                "error",
+                "Gmail connection failed. "
+                        + "You must grant Gmail permissions "
+                        + "to use this integration."
+        );
+        }
+
+        redirectAttributes.addFlashAttribute(
+            "success",
+            "Gmail account connected successfully."
+        );
+
+        return "redirect:/organizations/"
+                + organizationId
+                + "/settings";
+
     }
 
     private static String encode(String value) {

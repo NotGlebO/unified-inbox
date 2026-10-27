@@ -58,6 +58,17 @@ public class ConversationService {
         return conversationRepository
                 .findAllByOrganizationId(organizationId)
                 .stream()
+                .filter(conversation -> {
+                    Long lastMessageId = messageRepository
+                            .findLastMessageId(conversation.getId());
+
+                    Long hiddenThrough =
+                            conversation.getHiddenThroughMessageId();
+
+                    return hiddenThrough == null
+                            || (lastMessageId != null
+                                && lastMessageId > hiddenThrough);
+                })
                 .map(conversation -> {
 
                     IntegrationEntity integration =
@@ -145,6 +156,35 @@ public class ConversationService {
         state.markReadThrough(lastMessageId);
         readStateRepository.save(state);
     }
+
+    
+    @Transactional
+    public void deleteConversationLocally(Long conversationId) {
+        ConversationEntity conversation = conversationRepository
+                .findById(conversationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Conversation not found."
+                ));
+
+        organizationService.requireMember(
+                conversation.getIntegration()
+                        .getOrganization()
+                        .getId()
+        );
+
+        Long lastMessageId =
+                messageRepository.findLastMessageId(conversationId);
+
+        if (lastMessageId == null) {
+            return;
+        }
+
+        conversation.hideThrough(lastMessageId);
+    }
+
+    
+
 
 
 }

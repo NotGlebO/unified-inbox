@@ -151,61 +151,62 @@ public class MessageService {
         // 3. Проверяем права пользователя
         organizationService.requireMember(organizationId);
 
-        // 4. Загружаем сообщения и преобразуем их в DTO
-    // 4. Загружаем сообщения
-List<MessageEntity> messages = messageRepository
-        .findByConversationIdOrderBySentAtAscIdAsc(conversationId);
+        // 4. Загружаем сообщения
+    List<MessageEntity> messages = messageRepository.findVisibleMessages(
+            conversationId,
+            conversation.getHiddenThroughMessageId()
+    );
 
-// 5. Загружаем вложения для всех сообщений одним запросом
-List<Long> messageIds = messages.stream()
-        .map(MessageEntity::getId)
-        .toList();
+    // 5. Загружаем вложения для всех сообщений одним запросом
+    List<Long> messageIds = messages.stream()
+            .map(MessageEntity::getId)
+            .toList();
 
-Map<Long, List<AttachmentDetails>> attachmentsByMessage =
-        new HashMap<>();
+    Map<Long, List<AttachmentDetails>> attachmentsByMessage =
+            new HashMap<>();
 
-if (!messageIds.isEmpty()) {
-    attachmentRepository.findByMessageIdIn(messageIds)
-            .forEach(attachment -> {
+    if (!messageIds.isEmpty()) {
+        attachmentRepository.findByMessageIdIn(messageIds)
+                .forEach(attachment -> {
 
-                Long messageId = attachment.getMessage().getId();
+                    Long messageId = attachment.getMessage().getId();
 
-                AttachmentDetails details = new AttachmentDetails(
-                        attachment.getId(),
-                        attachment.getFileName(),
-                        attachment.getContentType(),
-                        attachment.getFileSize(),
-                        "/api/attachments/"
-                                + attachment.getId()
-                                + "/content"
-                );
+                    AttachmentDetails details = new AttachmentDetails(
+                            attachment.getId(),
+                            attachment.getFileName(),
+                            attachment.getContentType(),
+                            attachment.getFileSize(),
+                            "/api/attachments/"
+                                    + attachment.getId()
+                                    + "/content"
+                    );
 
-                attachmentsByMessage
-                        .computeIfAbsent(
-                                messageId,
-                                ignored -> new ArrayList<>()
-                        )
-                        .add(details);
-            });
-}
-
-                // 6. Формируем ответ для frontend
-                return messages.stream()
-                        .map(message -> new MessageDetails(
-                                message.getId(),
-                                message.getSenderName(),
-                                message.getText(),
-                                message.getSentAt(),
-                                message.getDirection(),
-                                message.getStatus(),
-                                message.getOrigin(),
-                                attachmentsByMessage.getOrDefault(
-                                        message.getId(),
-                                        List.of()
-                                )
-                        ))
-                        .toList();
+                    attachmentsByMessage
+                            .computeIfAbsent(
+                                    messageId,
+                                    ignored -> new ArrayList<>()
+                            )
+                            .add(details);
+                });
     }
+
+                    // 6. Формируем ответ для frontend
+                    return messages.stream()
+                            .map(message -> new MessageDetails(
+                                    message.getId(),
+                                    message.getSenderName(),
+                                    message.getText(),
+                                    message.getSentAt(),
+                                    message.getDirection(),
+                                    message.getStatus(),
+                                    message.getOrigin(),
+                                    attachmentsByMessage.getOrDefault(
+                                            message.getId(),
+                                            List.of()
+                                    )
+                            ))
+                            .toList();
+        }
 
     
   
@@ -271,6 +272,29 @@ if (!messageIds.isEmpty()) {
         conversation.updateLastActivity();
 
         return saved;
+    }
+
+    
+    @Transactional
+    public void deleteMessageLocally(Long messageId) {
+        MessageEntity message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Message not found."
+                ));
+
+        Long organizationId = message.getConversation()
+                .getIntegration()
+                .getOrganization()
+                .getId();
+
+        organizationService.requireMember(organizationId);
+
+        if (message.getLocallyDeletedAt() != null) {
+            return;
+        }
+
+        message.deleteLocally();
     }
 
 

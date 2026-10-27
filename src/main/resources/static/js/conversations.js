@@ -29,6 +29,53 @@ document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.querySelector('meta[name="_csrf"]').content;
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
+    
+    const deleteConversationButton =
+        document.getElementById("deleteConversationButton");
+
+    deleteConversationButton.addEventListener("click", async () => {
+        const conversationId = selectedConversationId;
+
+        if (!conversationId) return;
+
+        if (!confirm(
+            "Hide this conversation in Unified Inbox? " +
+            "It will reappear when a new message arrives."
+        )) {
+            return;
+        }
+
+        deleteConversationButton.disabled = true;
+
+        try {
+            const response = await fetch(
+                `/api/conversations/${encodeURIComponent(conversationId)}/local`,
+                {
+                    method: "DELETE",
+                    credentials: "same-origin",
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            closeChat();
+            lastConversationsSignature = null;
+            await loadConversations(true);
+
+        } catch (error) {
+            console.error("Failed to delete conversation:", error);
+            alert("Unable to delete conversation.");
+        } finally {
+            deleteConversationButton.disabled = false;
+        }
+    });
+
+
 let isSending = false;
 
     // Current application state
@@ -620,6 +667,49 @@ let isSending = false;
 
                 bubble.appendChild(status);
             }
+            
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "message-delete-button";
+            deleteButton.textContent = "Delete locally";
+            deleteButton.title = "Hide this message in Unified Inbox";
+
+            deleteButton.addEventListener("click", async () => {
+                if (!confirm("Hide this message in Unified Inbox?")) {
+                    return;
+                }
+
+                deleteButton.disabled = true;
+
+                try {
+                    const response = await fetch(
+                        `/api/messages/${encodeURIComponent(message.id)}/local`,
+                        {
+                            method: "DELETE",
+                            credentials: "same-origin",
+                            headers: {
+                                [csrfHeader]: csrfToken
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    lastMessagesSignature = null;
+                    await loadMessages(selectedConversationId);
+                    await loadConversations(true);
+
+                } catch (error) {
+                    console.error("Failed to delete message:", error);
+                    alert("Unable to delete message.");
+                    deleteButton.disabled = false;
+                }
+            });
+
+            bubble.appendChild(deleteButton);
+
 
             messageList.appendChild(bubble);
         });
@@ -629,6 +719,8 @@ let isSending = false;
         } else {
             messageList.scrollTop = previousScrollTop;
         }
+
+
     }
 
     function showMessagesNotice(text) {

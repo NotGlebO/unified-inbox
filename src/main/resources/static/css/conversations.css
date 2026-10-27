@@ -749,3 +749,27 @@
     font-size: 13px;
     vertical-align: middle;
 }
+
+
+.message-delete-button,
+.conversation-delete-button {
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: transparent;
+    color: #d8d8d8;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.message-delete-button:hover,
+.conversation-delete-button:hover {
+    border-color: #e36b6b;
+    color: #ff8888;
+}
+
+.message-delete-button:disabled,
+.conversation-delete-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

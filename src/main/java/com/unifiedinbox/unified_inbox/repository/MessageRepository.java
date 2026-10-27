@@ -36,18 +36,25 @@ public interface MessageRepository
             @Param("direction") MessageDirection direction
     );
 
+    
     @Query("""
-    SELECT COUNT(m)
-    FROM MessageEntity m
-    WHERE m.conversation.id = :conversationId
-    AND m.direction = :direction
-    AND m.id > :lastReadMessageId
-    """)
+        SELECT COUNT(m)
+        FROM MessageEntity m
+        WHERE m.conversation.id = :conversationId
+        AND m.direction = :direction
+        AND m.id > :lastReadMessageId
+        AND m.locallyDeletedAt IS NULL
+        AND (
+            m.conversation.hiddenThroughMessageId IS NULL
+            OR m.id > m.conversation.hiddenThroughMessageId
+        )
+        """)
     long countUnread(
             @Param("conversationId") Long conversationId,
             @Param("lastReadMessageId") Long lastReadMessageId,
             @Param("direction") MessageDirection direction
     );
+
 
     @Query("""
     SELECT MAX(m.id)
@@ -57,5 +64,25 @@ public interface MessageRepository
     Long findLastMessageId(
             @Param("conversationId") Long conversationId
     );
+
+    
+    @Query("""
+    SELECT m
+    FROM MessageEntity m
+    WHERE m.conversation.id = :conversationId
+    AND m.locallyDeletedAt IS NULL
+    AND (
+            :hiddenThroughId IS NULL
+            OR m.id > :hiddenThroughId
+    )
+    ORDER BY m.sentAt ASC, m.id ASC
+    """)
+    List<MessageEntity> findVisibleMessages(
+            @Param("conversationId") Long conversationId,
+            @Param("hiddenThroughId") Long hiddenThroughId
+    );
+
+   
+
 
 }

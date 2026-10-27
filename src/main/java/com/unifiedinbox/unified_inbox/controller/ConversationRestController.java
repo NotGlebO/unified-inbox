@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
@@ -85,7 +87,28 @@ public class ConversationRestController {
                 @PathVariable Long conversationId
         ) {
         conversationService.markAsRead(conversationId);
-        }
+    }
+
+       
+    @DeleteMapping("/messages/{messageId}/local")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMessageLocally(
+            @PathVariable Long messageId
+    ) {
+    messageService.deleteMessageLocally(messageId);
+    }
+
+    @DeleteMapping("/conversations/{conversationId}/local")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteConversationLocally(
+            @PathVariable Long conversationId
+    ) {
+    conversationService.deleteConversationLocally(conversationId);
+    }
+
+    
+
+
 
 
 }

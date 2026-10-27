@@ -84,4 +84,16 @@ public class ConversationEntity {
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
     }
+
+    @Column(name = "hidden_through_message_id")
+    private Long hiddenThroughMessageId;
+
+    public Long getHiddenThroughMessageId() {
+        return hiddenThroughMessageId;
+    }
+
+    public void hideThrough(Long messageId) {
+        this.hiddenThroughMessageId = messageId;
+    }
+
 }
