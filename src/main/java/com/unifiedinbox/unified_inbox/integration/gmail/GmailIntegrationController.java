@@ -1,17 +1,33 @@
+
 package com.unifiedinbox.unified_inbox.integration.gmail;
 
 import com.unifiedinbox.unified_inbox.service.OrganizationService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 @RestController
 @RequestMapping("/api/integrations/gmail")
 public class GmailIntegrationController {
+
+    private static final String OAUTH_STATE =
+            "GMAIL_OAUTH_STATE";
+
+    private static final String OAUTH_ORGANIZATION =
+            "GMAIL_OAUTH_ORGANIZATION";
+
+    private static final SecureRandom SECURE_RANDOM =
+            new SecureRandom();
 
     private final GmailIntegrationService gmailService;
     private final OrganizationService organizationService;
@@ -21,8 +37,10 @@ public class GmailIntegrationController {
     public GmailIntegrationController(
             GmailIntegrationService gmailService,
             OrganizationService organizationService,
-            @Value("${spring.security.oauth2.client.registration.google.client-id}") String googleClientId,
-            @Value("${app.public-url:http://localhost:8080}") String baseUrl
+            @Value("${spring.security.oauth2.client.registration.google.client-id}")
+            String googleClientId,
+            @Value("${app.public-url:http://localhost:8080}")
+            String baseUrl
     ) {
         this.gmailService = gmailService;
         this.organizationService = organizationService;
@@ -32,34 +50,49 @@ public class GmailIntegrationController {
 
     @GetMapping("/authorize")
     public ResponseEntity<Void> authorize(
-            @RequestParam Long organizationId
+            @RequestParam Long organizationId,
+            HttpServletRequest request
     ) {
         organizationService.requireOwner(organizationId);
 
         if (googleClientId == null || googleClientId.isBlank()) {
             throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Google OAuth2 client ID is not configured."
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Google OAuth client ID is not configured."
             );
         }
+
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
+
+        String state = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(randomBytes);
+
+        HttpSession session = request.getSession(true);
+
+        session.setAttribute(OAUTH_STATE, state);
+        session.setAttribute(
+                OAUTH_ORGANIZATION,
+                organizationId
+        );
 
         String redirectUri = baseUrl.replaceAll("/+$", "")
                 + "/api/integrations/gmail/callback";
 
-        String scope = "openid email https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send";
+        String scope = "openid email https://www.googleapis.com/auth/gmail.modify";
 
         String authUrl = "https://accounts.google.com/o/oauth2/v2/auth"
-                + "?client_id=" + URLEncoder.encode(googleClientId, StandardCharsets.UTF_8)
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
+                + "?client_id=" + encode(googleClientId)
+                + "&redirect_uri=" + encode(redirectUri)
                 + "&response_type=code"
-                + "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8)
+                + "&scope=" + encode(scope)
                 + "&access_type=offline"
                 + "&prompt=consent"
-                + "&state=" + URLEncoder.encode(organizationId.toString(), StandardCharsets.UTF_8);
+                + "&state=" + encode(state);
 
-        return ResponseEntity
-                .status(org.springframework.http.HttpStatus.FOUND)
-                .location(java.net.URI.create(authUrl))
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(authUrl))
                 .build();
     }
 
@@ -67,44 +100,68 @@ public class GmailIntegrationController {
     public ResponseEntity<Void> handleCallback(
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String code,
-            @RequestParam(required = false) String error
+            @RequestParam(required = false) String error,
+            HttpServletRequest request
     ) {
+        HttpSession session = request.getSession(false);
+
+        if (session == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OAuth session not found."
+            );
+        }
+
+        String expectedState =
+                (String) session.getAttribute(OAUTH_STATE);
+
+        Long organizationId =
+                (Long) session.getAttribute(OAUTH_ORGANIZATION);
+
+        if (expectedState == null || organizationId == null
+                || state == null
+                || !expectedState.equals(state)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid OAuth state."
+            );
+        }
+
+        // State is single-use, even when authorization fails.
+        session.removeAttribute(OAUTH_STATE);
+        session.removeAttribute(OAUTH_ORGANIZATION);
+
         if (error != null) {
             throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST,
                     "Gmail authorization failed: " + error
-            );
-        }
-
-        if (state == null || state.isBlank()) {
-            throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Organization ID (state) is missing."
-            );
-        }
-
-        Long organizationId;
-        try {
-            organizationId = Long.parseLong(state);
-        } catch (NumberFormatException exception) {
-            throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Invalid organization ID."
             );
         }
 
         if (code == null || code.isBlank()) {
             throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST,
                     "Authorization code is missing."
             );
         }
 
+        // Recheck authorization before connecting.
+        organizationService.requireOwner(organizationId);
+
         gmailService.connect(organizationId, code);
 
-        return ResponseEntity
-                .status(org.springframework.http.HttpStatus.FOUND)
-                .location(java.net.URI.create("/organizations/" + organizationId + "/settings?registered=true"))
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(
+                        "/organizations/" + organizationId
+                                + "/settings?registered=true"
+                ))
                 .build();
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(
+                value,
+                StandardCharsets.UTF_8
+        );
     }
 }

@@ -67,7 +67,8 @@ public class GmailApiClient {
             return new TokenResponse(
                     root.path("access_token").asString(""),
                     root.path("refresh_token").asString(""),
-                    root.path("expires_in").asLong(0)
+                    root.path("expires_in").asLong(0),
+                    root.path("scope").asString("")
             );
         } catch (MessageSendException e) {
             throw e;
@@ -247,14 +248,61 @@ public class GmailApiClient {
     }
 
     public record TokenResponse(
-            String accessToken,
-            String refreshToken,
-            long expiresIn
+        String accessToken,
+        String refreshToken,
+        long expiresIn,
+        String scope
     ) {}
 
     public record AccessTokenResponse(
             String accessToken,
             long expiresIn
     ) {}
+
+    
+    public void revokeToken(String refreshToken) {
+        try {
+            String body = "token=" + URLEncoder.encode(
+                    refreshToken,
+                    StandardCharsets.UTF_8
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://oauth2.googleapis.com/revoke"))
+                    .timeout(Duration.ofSeconds(10))
+                    .header(
+                            "Content-Type",
+                            "application/x-www-form-urlencoded"
+                    )
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            int status = response.statusCode();
+
+            if (status == 200 || status == 400) {
+                return;
+            }
+
+            throw new IllegalStateException(
+                    "Google token revocation failed: HTTP " + status
+            );
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Google token revocation interrupted", e
+            );
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(
+                    "Could not contact Google OAuth API", e
+            );
+        }
+    }
+
 
 }

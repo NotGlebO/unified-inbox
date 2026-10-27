@@ -7,6 +7,11 @@ import com.unifiedinbox.unified_inbox.service.EncryptionService;
 import com.unifiedinbox.unified_inbox.service.OrganizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class GmailIntegrationService {
@@ -24,7 +29,7 @@ public class GmailIntegrationService {
             IntegrationRepository integrationRepository,
             OrganizationService organizationService,
             EncryptionService encryptionService,
-            @org.springframework.beans.factory.annotation.Value("${app.base-url:http://localhost:8080}") String baseUrl
+            @org.springframework.beans.factory.annotation.Value("${app.public-url:http://localhost:8080}") String baseUrl
     ) {
         this.gmailApiClient = gmailApiClient;
         this.connectionRepository = connectionRepository;
@@ -46,6 +51,49 @@ public class GmailIntegrationService {
 
         GmailApiClient.TokenResponse tokenResponse = gmailApiClient
                 .exchangeCodeForTokens(authorizationCode, redirectUri);
+
+
+        
+        String requiredScope =
+                "https://www.googleapis.com/auth/gmail.modify";
+
+        Set<String> grantedScopes = Arrays.stream(
+                tokenResponse.scope().trim().split("\\s+")
+        ).filter(scope -> !scope.isBlank())
+        .collect(Collectors.toSet());
+
+        if (!grantedScopes.contains(requiredScope)) {
+            // The user did not grant the permissions required by Unified Inbox.
+            // Revoke the temporary token before rejecting the connection.
+            if (!tokenResponse.accessToken().isBlank()) {
+                try {
+                    gmailApiClient.revokeToken(
+                            tokenResponse.accessToken()
+                    );
+                } catch (Exception exception) {
+                    // Revocation failure must not allow the connection.
+                    org.slf4j.LoggerFactory
+                            .getLogger(GmailIntegrationService.class)
+                            .warn("Failed to revoke rejected Gmail OAuth token",
+                                    exception);
+                }
+            }
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Required Gmail permissions were not granted. "
+                            + "Please allow Gmail access and try again."
+            );
+        }
+
+        if (tokenResponse.refreshToken() == null
+                || tokenResponse.refreshToken().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Google did not provide a refresh token. "
+                            + "Please reconnect your Gmail account."
+            );
+        }
 
         String email = gmailApiClient.getUserInfo(tokenResponse.accessToken());
 
