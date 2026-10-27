@@ -34,20 +34,20 @@ public class GmailIntegrationController {
     private final GmailIntegrationService gmailService;
     private final OrganizationService organizationService;
     private final String googleClientId;
-    private final String baseUrl;
+    private final String redirectUri;
 
     public GmailIntegrationController(
             GmailIntegrationService gmailService,
             OrganizationService organizationService,
             @Value("${spring.security.oauth2.client.registration.google.client-id}")
             String googleClientId,
-            @Value("${app.public-url:http://localhost:8080}")
-            String baseUrl
+            @Value("${app.gmail-redirect-uri}")
+            String redirectUri
     ) {
         this.gmailService = gmailService;
         this.organizationService = organizationService;
         this.googleClientId = googleClientId;
-        this.baseUrl = baseUrl;
+        this.redirectUri = redirectUri;
     }
 
     @GetMapping("/authorize")
@@ -80,8 +80,7 @@ public class GmailIntegrationController {
                 organizationId
         );
 
-        String redirectUri = baseUrl.replaceAll("/+$", "")
-                + "/api/integrations/gmail/callback";
+        
 
         String scope = "openid email https://www.googleapis.com/auth/gmail.modify";
 

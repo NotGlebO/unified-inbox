@@ -183,6 +183,57 @@ public class ConversationService {
         conversation.hideThrough(lastMessageId);
     }
 
+    @Transactional
+    public void deleteConversationsLocally(
+            Long organizationId,
+            List<Long> conversationIds
+    ) {
+        organizationService.requireMember(organizationId);
+
+        if (conversationIds == null
+                || conversationIds.isEmpty()
+                || conversationIds.size() > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Select between 1 and 100 conversations."
+            );
+        }
+
+        List<Long> uniqueIds = conversationIds.stream()
+                .distinct()
+                .toList();
+
+        if (uniqueIds.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid conversation ID."
+            );
+        }
+
+        List<ConversationEntity> selected =
+                conversationRepository.findAllById(uniqueIds);
+
+        if (selected.size() != uniqueIds.size()
+                || selected.stream().anyMatch(conversation ->
+                    !conversation.getIntegration()
+                            .getOrganization()
+                            .getId()
+                            .equals(organizationId))) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Conversation not found."
+            );
+        }
+
+        for (ConversationEntity conversation : selected) {
+            Long lastMessageId = messageRepository
+                    .findLastMessageId(conversation.getId());
+
+            if (lastMessageId != null) {
+                conversation.hideThrough(lastMessageId);
+            }
+        }
+    }
     
 
 

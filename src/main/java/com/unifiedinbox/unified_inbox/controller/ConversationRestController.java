@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import com.unifiedinbox.unified_inbox.core.dto.DeleteConversationsRequest;
 
 import java.util.List;
 
@@ -106,7 +106,17 @@ public class ConversationRestController {
     conversationService.deleteConversationLocally(conversationId);
     }
 
-    
+    @PostMapping("/organizations/{organizationId}/conversations/delete-local")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteConversationsLocally(
+            @PathVariable Long organizationId,
+            @RequestBody DeleteConversationsRequest request
+    ) {
+        conversationService.deleteConversationsLocally(
+                organizationId,
+                request.conversationIds()
+        );
+    }
 
 
 

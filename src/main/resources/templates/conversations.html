@@ -83,6 +83,40 @@
                     </span>
                 </div>
 
+                <div class="conversation-selection-toolbar">
+                    <button type="button"
+                            id="toggleSelectionButton"
+                            class="selection-button">
+                        Select
+                    </button>
+
+                    <div id="selectionActions"
+                        class="selection-actions"
+                        hidden>
+
+                        <button type="button"
+                                id="selectAllButton"
+                                class="selection-button">
+                            Select all
+                        </button>
+
+                        <button type="button"
+                                id="deleteSelectedButton"
+                                class="selection-delete-button"
+                                disabled>
+                            Delete selected (0)
+                        </button>
+                    </div>
+                </div>
+
+                <div id="conversationContextMenu"
+                    class="conversation-context-menu"
+                    hidden>
+                    <button type="button" id="contextDeleteButton">
+                        Delete locally
+                    </button>
+                </div>
+
                 <label class="search-field">
                     <span class="search-icon">⌕</span>
 
@@ -171,13 +205,7 @@
                     </div>
 
                 </div>
-                <button
-                    type="button"
-                    class="conversation-delete-button"
-                    id="deleteConversationButton">
-                    Delete conversation
-                </button>
-
+                
             </header>
 
             <!-- Initial empty state -->

@@ -30,50 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
     
-    const deleteConversationButton =
-        document.getElementById("deleteConversationButton");
-
-    deleteConversationButton.addEventListener("click", async () => {
-        const conversationId = selectedConversationId;
-
-        if (!conversationId) return;
-
-        if (!confirm(
-            "Hide this conversation in Unified Inbox? " +
-            "It will reappear when a new message arrives."
-        )) {
-            return;
-        }
-
-        deleteConversationButton.disabled = true;
-
-        try {
-            const response = await fetch(
-                `/api/conversations/${encodeURIComponent(conversationId)}/local`,
-                {
-                    method: "DELETE",
-                    credentials: "same-origin",
-                    headers: {
-                        [csrfHeader]: csrfToken
-                    }
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            closeChat();
-            lastConversationsSignature = null;
-            await loadConversations(true);
-
-        } catch (error) {
-            console.error("Failed to delete conversation:", error);
-            alert("Unable to delete conversation.");
-        } finally {
-            deleteConversationButton.disabled = false;
-        }
-    });
+    
 
 
 let isSending = false;
@@ -86,6 +43,167 @@ let isSending = false;
     let activeFilter = "ALL";
     let messageRequestVersion = 0;
     let lastMessagesSignature = null;
+
+    
+    const toggleSelectionButton =
+        document.getElementById("toggleSelectionButton");
+    const selectionActions =
+        document.getElementById("selectionActions");
+    const selectAllButton =
+        document.getElementById("selectAllButton");
+    const deleteSelectedButton =
+        document.getElementById("deleteSelectedButton");
+    const contextMenu =
+        document.getElementById("conversationContextMenu");
+    const contextDeleteButton =
+        document.getElementById("contextDeleteButton");
+
+    const selectedConversationIds = new Set();
+
+    let selectionMode = false;
+    let contextConversationId = null;
+    let deletingConversations = false;
+
+    function getFilteredConversations() {
+        const searchText = conversationSearch.value.trim().toLowerCase();
+
+        return conversations.filter(conversation => {
+            const name = (conversation.customerName || "").toLowerCase();
+            const integrationName =
+                (conversation.integrationName || "").toLowerCase();
+            const type = (conversation.integrationType || "").toUpperCase();
+
+            return (
+                (name.includes(searchText)
+                    || integrationName.includes(searchText)
+                    || type.toLowerCase().includes(searchText))
+                && (activeFilter === "ALL" || type === activeFilter)
+            );
+        });
+    }
+
+    function updateSelectionToolbar() {
+        selectionActions.hidden = !selectionMode;
+        toggleSelectionButton.textContent =
+            selectionMode ? "Cancel" : "Select";
+
+        deleteSelectedButton.textContent =
+            `Delete selected (${selectedConversationIds.size})`;
+
+        deleteSelectedButton.disabled =
+            selectedConversationIds.size === 0 || deletingConversations;
+
+        selectAllButton.disabled = deletingConversations;
+        toggleSelectionButton.disabled = deletingConversations;
+    }
+
+    function setSelectionMode(enabled) {
+        selectionMode = enabled;
+        selectedConversationIds.clear();
+        contextMenu.hidden = true;
+        updateSelectionToolbar();
+        renderConversations();
+    }
+
+    toggleSelectionButton.addEventListener("click", () => {
+        setSelectionMode(!selectionMode);
+    });
+
+    selectAllButton.addEventListener("click", () => {
+        const filtered = getFilteredConversations();
+
+        const allSelected = filtered.length > 0 &&
+            filtered.every(conversation =>
+                selectedConversationIds.has(conversation.id)
+            );
+
+        for (const conversation of filtered) {
+            if (allSelected) {
+                selectedConversationIds.delete(conversation.id);
+            } else {
+                selectedConversationIds.add(conversation.id);
+            }
+        }
+
+        updateSelectionToolbar();
+        renderConversations();
+    });
+
+    async function deleteConversations(ids) {
+        if (deletingConversations || ids.length === 0) return;
+
+        if (!confirm(
+            `Delete ${ids.length} conversation(s) locally? ` +
+            "They will reappear when new messages arrive."
+        )) return;
+
+        deletingConversations = true;
+        updateSelectionToolbar();
+        contextMenu.hidden = true;
+
+        try {
+            const response = await fetch(
+                `/api/organizations/${encodeURIComponent(organizationId)}/conversations/delete-local`,
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ conversationIds: ids })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            if (ids.includes(selectedConversationId)) {
+                closeChat();
+            }
+
+            selectionMode = false;
+            selectedConversationIds.clear();
+            lastConversationsSignature = null;
+
+            await loadConversations(true);
+        } catch (error) {
+            console.error("Failed to delete conversations:", error);
+            alert("Unable to delete selected conversations.");
+        } finally {
+            deletingConversations = false;
+            updateSelectionToolbar();
+            renderConversations();
+        }
+    }
+
+    deleteSelectedButton.addEventListener("click", () => {
+        deleteConversations([...selectedConversationIds]);
+    });
+
+    contextDeleteButton.addEventListener("click", () => {
+        if (contextConversationId != null) {
+            deleteConversations([contextConversationId]);
+        }
+    });
+
+    document.addEventListener("click", event => {
+        if (!contextMenu.contains(event.target)) {
+            contextMenu.hidden = true;
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            contextMenu.hidden = true;
+        }
+    });
+
+    window.addEventListener("resize", () => {
+        contextMenu.hidden = true;
+    });
+
 
     // -------------------------
     // API
@@ -150,6 +268,15 @@ let isSending = false;
             if (signature !== lastConversationsSignature) {
                 lastConversationsSignature = signature;
                 conversations = data;
+                const availableIds = new Set(data.map(item => item.id));
+
+                for (const id of selectedConversationIds) {
+                    if (!availableIds.has(id)) {
+                        selectedConversationIds.delete(id);
+                    }
+                }
+
+                updateSelectionToolbar();
                 renderConversations();
             }
 
@@ -445,9 +572,55 @@ let isSending = false;
         info.append(nameRow, platform);
         button.append(avatar, info);
 
+        
+        if (selectionMode) {
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "conversation-checkbox";
+            checkbox.checked = selectedConversationIds.has(conversation.id);
+            checkbox.tabIndex = -1;
+
+            button.prepend(checkbox);
+            button.classList.toggle(
+                "multi-selected",
+                selectedConversationIds.has(conversation.id)
+            );
+        }
+
         button.addEventListener("click", () => {
+            if (selectionMode) {
+                if (selectedConversationIds.has(conversation.id)) {
+                    selectedConversationIds.delete(conversation.id);
+                } else {
+                    selectedConversationIds.add(conversation.id);
+                }
+
+                updateSelectionToolbar();
+                renderConversations();
+                return;
+            }
+
             selectConversation(conversation);
         });
+
+    button.addEventListener("contextmenu", event => {
+        event.preventDefault();
+
+        if (selectionMode || deletingConversations) return;
+
+        contextConversationId = conversation.id;
+        contextMenu.hidden = false;
+
+        const menuWidth = contextMenu.offsetWidth;
+        const menuHeight = contextMenu.offsetHeight;
+
+        contextMenu.style.left =
+            `${Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8))}px`;
+
+        contextMenu.style.top =
+            `${Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8))}px`;
+    });
+
 
         return button;
     }
@@ -671,7 +844,24 @@ let isSending = false;
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
             deleteButton.className = "message-delete-button";
-            deleteButton.textContent = "Delete locally";
+            deleteButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg"
+                width="16" height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M8 6V4h8v2"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 10v6"/>
+                <path d="M14 10v6"/>
+            </svg>
+        `;
+            deleteButton.title = "Delete message locally";
+            deleteButton.setAttribute("aria-label", "Delete message locally");
             deleteButton.title = "Hide this message in Unified Inbox";
 
             deleteButton.addEventListener("click", async () => {

@@ -29,14 +29,14 @@ public class GmailIntegrationService {
             IntegrationRepository integrationRepository,
             OrganizationService organizationService,
             EncryptionService encryptionService,
-            @org.springframework.beans.factory.annotation.Value("${app.public-url:http://localhost:8080}") String baseUrl
+            @org.springframework.beans.factory.annotation.Value("${app.gmail-redirect-uri}") String redirectUri
     ) {
         this.gmailApiClient = gmailApiClient;
         this.connectionRepository = connectionRepository;
         this.integrationRepository = integrationRepository;
         this.organizationService = organizationService;
         this.encryptionService = encryptionService;
-        this.redirectUri = baseUrl.replaceAll("/+$", "") + "/api/integrations/gmail/callback";
+        this.redirectUri = redirectUri;
     }
 
     @Transactional

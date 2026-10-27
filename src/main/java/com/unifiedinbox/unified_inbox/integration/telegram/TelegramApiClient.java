@@ -141,9 +141,13 @@ public class TelegramApiClient {
             if (response.statusCode() != 200
                     || !result.path("ok").asBoolean(false)) {
 
+            String description = result.path("description")
+                    .asString("Unknown Telegram error");
+
             throw new IllegalStateException(
                     "Failed to register Telegram webhook: HTTP "
                             + response.statusCode()
+                            + " - " + description
             );
             }
 

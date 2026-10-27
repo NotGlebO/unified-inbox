@@ -105,6 +105,8 @@ public class TelegramIntegrationService {
         
         String webhookUrl = publicUrl.replaceAll("/+$", "")
                 + "/api/webhooks/telegram";
+                
+        System.out.println("Webhook URL: " + webhookUrl);
 
         telegramApiClient.setWebhook(
                 normalizedToken,
